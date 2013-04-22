@@ -1,0 +1,79 @@
+package glum.math;
+
+import java.util.*;
+
+public class ViolentNoise2 implements Noise
+{
+	// Seed key values
+	protected Collection<Noise> myNoiseList;
+
+
+	/**
+	* Constructor
+	*/
+	public ViolentNoise2()
+	{
+		myNoiseList = new LinkedList<Noise>();
+	}
+
+
+	/**
+	* add
+	*/
+	public void add(Noise aNoise)
+	{
+		myNoiseList.add(aNoise);
+	}
+
+
+	/**
+	* getValue1D - Returns a continous random value in the range of [0-1] in
+	* 1D space. It is repeatable for the same x values.
+	*/
+	public double getValue1D(double x)
+	{
+		double total;
+
+		total = 0;
+		for (Noise aNoiseGen : myNoiseList)
+			total += Math.abs(aNoiseGen.getValue1D(x));
+
+		total = Math.sin(x + total);
+		return total;
+	}
+
+
+	/**
+	* getValue2D - Returns a continous random value in the range of [0-1] in
+	* 2D space. It is repeatable for the same x,y values.
+	*/
+	public double getValue2D(double x, double y)
+	{
+		double total;
+
+		total = 0;
+		for (Noise aNoiseGen : myNoiseList)
+			total += Math.abs(aNoiseGen.getValue2D(x, y));
+
+		total = Math.sin(x + total);
+		return total;
+	}
+
+
+	/**
+	* getValue3D - Returns a continous random value in the range of [0-1] in
+	* 3D space. It is repeatable for the same x,y,z values.
+	*/
+	public double getValue3D(double x, double y, double z)
+	{
+		double total;
+
+		total = 0;
+		for (Noise aNoiseGen : myNoiseList)
+			total += Math.abs(aNoiseGen.getValue3D(x, y, z));
+
+		total = Math.tan(x + total);
+		return total;
+	}
+
+}
