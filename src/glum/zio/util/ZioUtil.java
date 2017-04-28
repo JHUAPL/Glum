@@ -2,10 +2,10 @@ package glum.zio.util;
 
 import glum.task.Task;
 import glum.unit.TimeCountUnit;
-import glum.zio.FileZinStream;
-import glum.zio.FileZoutStream;
 import glum.zio.ZinStream;
 import glum.zio.ZoutStream;
+import glum.zio.stream.FileZinStream;
+import glum.zio.stream.FileZoutStream;
 
 import java.awt.Color;
 import java.awt.Dimension;

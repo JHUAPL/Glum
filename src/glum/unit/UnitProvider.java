@@ -1,8 +1,8 @@
 package glum.unit;
 
-import glum.zio.raw.ZioRaw;
+import glum.zio.ZioObj;
 
-public interface UnitProvider extends ZioRaw
+public interface UnitProvider extends ZioObj
 {
 	/**
 	 * Adds a Listener for Unit changes

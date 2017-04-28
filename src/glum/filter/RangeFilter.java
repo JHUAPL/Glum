@@ -1,8 +1,6 @@
 package glum.filter;
 
-import glum.zio.ZinStream;
-import glum.zio.ZoutStream;
-import glum.zio.raw.ZioRaw;
+import glum.zio.*;
 
 import java.io.IOException;
 
@@ -11,7 +9,7 @@ import java.io.IOException;
  * is the isValid() method and to call the appropriate Constructor. In the isValid() method, you should delegate filter
  * logic to the method testIsValid() with the quantity of interest, and return the result from the method call.
  */
-public abstract class RangeFilter<G1> implements ZioRaw, Filter<G1>
+public abstract class RangeFilter<G1> implements ZioObj, Filter<G1>
 {
 	private boolean isEnabled;
 	private boolean useMin, useMax;
@@ -61,7 +59,7 @@ public abstract class RangeFilter<G1> implements ZioRaw, Filter<G1>
 	}
 
 	@Override
-	public void zioReadRaw(ZinStream aStream) throws IOException
+	public void zioRead(ZinStream aStream) throws IOException
 	{
 		byte bSwitch;
 
@@ -80,7 +78,7 @@ public abstract class RangeFilter<G1> implements ZioRaw, Filter<G1>
 	}
 
 	@Override
-	public void zioWriteRaw(ZoutStream aStream) throws IOException
+	public void zioWrite(ZoutStream aStream) throws IOException
 	{
 		byte bSwitch;
 

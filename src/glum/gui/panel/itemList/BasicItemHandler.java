@@ -6,10 +6,7 @@ import glum.gui.panel.itemList.query.QueryTableCellRenderer;
 import glum.unit.Unit;
 import glum.unit.UnitListener;
 import glum.unit.UnitProvider;
-import glum.zio.ZinStream;
-import glum.zio.ZoutStream;
-import glum.zio.raw.ZioRaw;
-import glum.zio.raw.ZioRawUtil;
+import glum.zio.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -25,7 +22,7 @@ import javax.swing.table.TableColumnModel;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-public abstract class BasicItemHandler<G1> implements ZioRaw, ItemHandler<G1>, UnitListener
+public abstract class BasicItemHandler<G1> implements ZioObj, ItemHandler<G1>, UnitListener
 {
 	protected JTable myOwner;
 	protected ArrayList<QueryAttribute> fullAttributeList;
@@ -71,7 +68,7 @@ public abstract class BasicItemHandler<G1> implements ZioRaw, ItemHandler<G1>, U
 	}
 
 	@Override
-	public void zioReadRaw(ZinStream aStream) throws IOException
+	public void zioRead(ZinStream aStream) throws IOException
 	{
 		ArrayList<QueryAttribute> newSortedList;
 		int numItems, index;
@@ -80,7 +77,7 @@ public abstract class BasicItemHandler<G1> implements ZioRaw, ItemHandler<G1>, U
 		aStream.readVersion(0);
 		
 		// Payload
-		ZioRawUtil.readRawList(aStream, fullAttributeList);
+		ZioObjUtil.readList(aStream, fullAttributeList);
 
 		// Reorder the sortedAttributeList based on the serialization
 		numItems = aStream.readInt();
@@ -99,7 +96,7 @@ public abstract class BasicItemHandler<G1> implements ZioRaw, ItemHandler<G1>, U
 	}
 
 	@Override
-	public void zioWriteRaw(ZoutStream aStream) throws IOException
+	public void zioWrite(ZoutStream aStream) throws IOException
 	{
 		int numItems;
 		
@@ -107,7 +104,7 @@ public abstract class BasicItemHandler<G1> implements ZioRaw, ItemHandler<G1>, U
 		aStream.writeVersion(0);
 		
 		// Payload
-		ZioRawUtil.writeRawList(aStream, fullAttributeList);
+		ZioObjUtil.writeList(aStream, fullAttributeList);
 		
 		// Output the order of the sortedAttributeList
 		numItems = sortedAttributeList.size();

@@ -2,9 +2,7 @@ package glum.gui.panel.itemList.config;
 
 import glum.gui.panel.itemList.query.QueryAttribute;
 import glum.gui.panel.itemList.query.QueryComposer;
-import glum.zio.ZinStream;
-import glum.zio.ZoutStream;
-import glum.zio.raw.ZioRaw;
+import glum.zio.*;
 
 import java.io.IOException;
 import java.util.*;
@@ -18,7 +16,7 @@ import com.google.common.collect.Maps;
  * of ItemListPanel and associated table.
  *
  */
-public class ProfileConfig implements ZioRaw
+public class ProfileConfig implements ZioObj
 {
 	// State vars
 	protected String myName;
@@ -93,7 +91,7 @@ public class ProfileConfig implements ZioRaw
 	}
 
 	@Override
-	public void zioReadRaw(ZinStream aStream) throws IOException
+	public void zioRead(ZinStream aStream) throws IOException
 	{
 		Map<Integer, QueryAttribute> newMap;
 		QueryAttribute queryAttr;
@@ -113,7 +111,7 @@ public class ProfileConfig implements ZioRaw
 			modelId = aStream.readInt();
 			
 			queryAttr = itemMap.get(modelId);
-			queryAttr.zioReadRaw(aStream);
+			queryAttr.zioRead(aStream);
 			
 			newMap.put(modelId, queryAttr);
 		}
@@ -122,7 +120,7 @@ public class ProfileConfig implements ZioRaw
 	}
 
 	@Override
-	public void zioWriteRaw(ZoutStream aStream) throws IOException
+	public void zioWrite(ZoutStream aStream) throws IOException
 	{
 		QueryAttribute queryAttr;
 		int numItems;
@@ -139,7 +137,7 @@ public class ProfileConfig implements ZioRaw
 			queryAttr = itemMap.get(aModelId);
 			
 			aStream.writeInt(aModelId);
-			queryAttr.zioWriteRaw(aStream);
+			queryAttr.zioWrite(aStream);
 		}
 	}
 

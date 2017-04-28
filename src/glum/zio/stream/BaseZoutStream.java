@@ -1,7 +1,7 @@
-package glum.zio;
+package glum.zio.stream;
 
 import glum.util.WallTimer;
-import glum.zio.raw.ZioRaw;
+import glum.zio.ZoutStream;
 import glum.zio.util.ZioUtil;
 
 import java.io.IOException;
@@ -27,8 +27,8 @@ public abstract class BaseZoutStream implements ZoutStream
 	 * @param computeCheckSum
 	 *           True if a checksum (md5sum) is desired to be computed as the stream is written
 	 * @param isDirect
-	 *           True if a direct buffer is desired. This should only be true if the stream is going to a physical I/O
-	 *           component (disk, network) and the size of the final stream will be at least ~50 MB.
+	 *           True if a direct buffer is desired. This should only be true if the stream is going to a physical I/O component (disk, network) and the size of
+	 *           the final stream will be at least ~50 MB.
 	 */
 	public BaseZoutStream(boolean computeCheckSum, boolean isDirect) throws IOException
 	{
@@ -41,7 +41,7 @@ public abstract class BaseZoutStream implements ZoutStream
 			if (computeCheckSum == true)
 				digest = MessageDigest.getInstance("MD5");
 		}
-		catch (NoSuchAlgorithmException aExp)
+		catch(NoSuchAlgorithmException aExp)
 		{
 			throw new IOException("Unreconized Algorithm", aExp);
 		}
@@ -268,15 +268,8 @@ public abstract class BaseZoutStream implements ZoutStream
 		ZioUtil.writeCompactInt(this, aVersion);
 	}
 
-	@Override
-	public void writeZioRaw(ZioRaw aZioRaw) throws IOException
-	{
-		aZioRaw.zioWriteRaw(this);
-	}
-
 	/**
-	 * Helper method that ensures the digest has been updated with any buffered data. The buffer will be cleared after
-	 * the digest has been updated.
+	 * Helper method that ensures the digest has been updated with any buffered data. The buffer will be cleared after the digest has been updated.
 	 * <P>
 	 * The method shall be called exclusively from {@link BaseZoutStream#emptyWorkBuffer()}.
 	 */
@@ -294,14 +287,13 @@ public abstract class BaseZoutStream implements ZoutStream
 	}
 
 	/**
-	 * Helper method to empty the workBuffer and copy the contents to the stream. The contents of the workBuffer will be
-	 * output to the "stream". This method ensures that workBuffer will always have enough data to support writing
+	 * Helper method to empty the workBuffer and copy the contents to the stream. The contents of the workBuffer will be output to the "stream". This method
+	 * ensures that workBuffer will always have enough data to support writing
 	 */
 	protected abstract void emptyWorkBuffer() throws IOException;
 
 	/**
-	 * Helper method to release any stream related vars. This method will only be called once, the very first time the
-	 * method {@link #close()} is called.
+	 * Helper method to release any stream related vars. This method will only be called once, the very first time the method {@link #close()} is called.
 	 */
 	protected abstract void releaseStreamVars() throws IOException;
 

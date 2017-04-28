@@ -2,9 +2,7 @@ package glum.gui.panel;
 
 import glum.gui.panel.nub.HorizontalNub;
 import glum.util.MathUtil;
-import glum.zio.ZinStream;
-import glum.zio.ZoutStream;
-import glum.zio.raw.ZioRaw;
+import glum.zio.*;
 import glum.zio.util.ZioUtil;
 
 import java.awt.Component;
@@ -27,7 +25,7 @@ import net.miginfocom.swing.MigLayout;
  * rather than delegating to the Nub classes. The current implementation is slightly inefficient, but probably more
  * flexible as it allows other custom Nubs to be swapped in.
  */
-public class WaftPanel extends JComponent implements ZioRaw, ComponentListener
+public class WaftPanel extends JComponent implements ZioObj, ComponentListener
 {
 	// Gui vars
 	protected Component childComp;
@@ -198,7 +196,7 @@ public class WaftPanel extends JComponent implements ZioRaw, ComponentListener
 	}
 	
 	@Override
-	public void zioReadRaw(ZinStream aStream) throws IOException
+	public void zioRead(ZinStream aStream) throws IOException
 	{
 		aStream.readVersion(0);
 		
@@ -207,7 +205,7 @@ public class WaftPanel extends JComponent implements ZioRaw, ComponentListener
 	}
 
 	@Override
-	public void zioWriteRaw(ZoutStream aStream) throws IOException
+	public void zioWrite(ZoutStream aStream) throws IOException
 	{
 		aStream.writeVersion(0);
 		

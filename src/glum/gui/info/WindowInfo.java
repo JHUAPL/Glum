@@ -1,14 +1,12 @@
 package glum.gui.info;
 
-import glum.zio.ZinStream;
-import glum.zio.ZoutStream;
-import glum.zio.raw.ZioRaw;
+import glum.zio.*;
 import glum.zio.util.ZioUtil;
 
 import java.awt.*;
 import java.io.*;
 
-public class WindowInfo implements ZioRaw
+public class WindowInfo implements ZioObj
 {
 	// Raw vars
 	protected Point position;
@@ -53,7 +51,7 @@ public class WindowInfo implements ZioRaw
 	}
 
 	@Override
-	public void zioReadRaw(ZinStream aStream) throws IOException
+	public void zioRead(ZinStream aStream) throws IOException
 	{
 		aStream.readVersion(0);
 
@@ -65,7 +63,7 @@ public class WindowInfo implements ZioRaw
 	}
 
 	@Override
-	public void zioWriteRaw(ZoutStream aStream) throws IOException
+	public void zioWrite(ZoutStream aStream) throws IOException
 	{
 		aStream.writeVersion(0);
 

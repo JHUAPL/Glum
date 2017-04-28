@@ -2,9 +2,7 @@ package glum.gui.panel;
 
 import glum.gui.GuiUtil;
 import glum.gui.panel.CustomFocusTraversalPolicy;
-import glum.zio.ZinStream;
-import glum.zio.ZoutStream;
-import glum.zio.raw.ZioRaw;
+import glum.zio.*;
 
 import java.awt.*;
 import java.awt.event.ComponentEvent;
@@ -12,6 +10,7 @@ import java.awt.event.ComponentListener;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.util.Set;
+
 import javax.swing.*;
 import javax.swing.event.MouseInputAdapter;
 
@@ -19,7 +18,7 @@ import net.miginfocom.swing.MigLayout;
 
 import com.google.common.collect.Sets;
 
-public class GlassPane extends JComponent implements ZioRaw, ComponentListener
+public class GlassPane extends JComponent implements ZioObj, ComponentListener
 {
 	// Communicator vars
 	protected Component parentComp;
@@ -148,15 +147,15 @@ public class GlassPane extends JComponent implements ZioRaw, ComponentListener
 	}	
 	
 	@Override
-	public void zioReadRaw(ZinStream aStream) throws IOException
+	public void zioRead(ZinStream aStream) throws IOException
 	{
-		childComp.zioReadRaw(aStream);
+		childComp.zioRead(aStream);
 	}
 	
 	@Override
-	public void zioWriteRaw(ZoutStream aStream) throws IOException
+	public void zioWrite(ZoutStream aStream) throws IOException
 	{
-		childComp.zioWriteRaw(aStream);
+		childComp.zioWrite(aStream);
 	}
 	
 	/**

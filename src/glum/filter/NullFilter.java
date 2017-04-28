@@ -18,13 +18,13 @@ public class NullFilter<G1> implements Filter<G1>
 	}
 
 	@Override
-	public void zioReadRaw(ZinStream aStream) throws IOException
+	public void zioRead(ZinStream aStream) throws IOException
 	{
 		; // Nothing to do
 	}
 
 	@Override
-	public void zioWriteRaw(ZoutStream aStream) throws IOException
+	public void zioWrite(ZoutStream aStream) throws IOException
 	{
 		; // Nothing to do
 	}

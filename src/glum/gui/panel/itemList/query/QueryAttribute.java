@@ -7,11 +7,9 @@ import javax.swing.table.*;
 
 import glum.unit.EmptyUnitProvider;
 import glum.unit.UnitProvider;
-import glum.zio.ZinStream;
-import glum.zio.ZoutStream;
-import glum.zio.raw.ZioRaw;
+import glum.zio.*;
 
-public class QueryAttribute implements ZioRaw
+public class QueryAttribute implements ZioObj
 {
 	// State vars
 	public final int modelIndex;
@@ -117,7 +115,7 @@ System.out.println("Are we ready for this ???");
 	}
 
 	@Override
-	public void zioReadRaw(ZinStream aStream) throws IOException
+	public void zioRead(ZinStream aStream) throws IOException
 	{
 		aStream.readVersion(0);
 		
@@ -131,7 +129,7 @@ System.out.println("Are we ready for this ???");
 	}
 
 	@Override
-	public void zioWriteRaw(ZoutStream aStream) throws IOException
+	public void zioWrite(ZoutStream aStream) throws IOException
 	{
 		// Synchronize the attribute before serialization
 		synchronizeAttribute();

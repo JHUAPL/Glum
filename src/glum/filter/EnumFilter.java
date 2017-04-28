@@ -1,8 +1,6 @@
 package glum.filter;
 
-import glum.zio.ZinStream;
-import glum.zio.ZoutStream;
-import glum.zio.raw.ZioRaw;
+import glum.zio.*;
 
 import java.io.IOException;
 import java.util.List;
@@ -13,7 +11,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-public abstract class EnumFilter<G1, G2 extends Enum<?>> implements ZioRaw, Filter<G1>
+public abstract class EnumFilter<G1, G2 extends Enum<?>> implements ZioObj, Filter<G1>
 {
 	// Static config vars
 	private Map<Integer, Enum<?>> fullMap;
@@ -75,7 +73,7 @@ public abstract class EnumFilter<G1, G2 extends Enum<?>> implements ZioRaw, Filt
 	}
 	
 	@Override
-	public void zioReadRaw(ZinStream aStream) throws IOException
+	public void zioRead(ZinStream aStream) throws IOException
 	{
 		int numItems;
 		
@@ -91,7 +89,7 @@ public abstract class EnumFilter<G1, G2 extends Enum<?>> implements ZioRaw, Filt
 	}
 
 	@Override
-	public void zioWriteRaw(ZoutStream aStream) throws IOException
+	public void zioWrite(ZoutStream aStream) throws IOException
 	{
 		int numItems;
 		

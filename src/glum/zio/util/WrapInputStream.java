@@ -6,7 +6,7 @@ import java.io.InputStream;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 
-import glum.zio.BaseZinStream;
+import glum.zio.stream.BaseZinStream;
 
 /**
  * Package private class to transform an InputStream to a ZinStream (view).

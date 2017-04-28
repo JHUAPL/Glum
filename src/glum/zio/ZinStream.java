@@ -1,10 +1,8 @@
 package glum.zio;
 
-import glum.zio.raw.ZioRaw;
-
 import java.io.IOException;
 
-public interface ZinStream
+public interface ZinStream extends AutoCloseable
 {
 	/**
 	 * Releases any resources associated with the ZioInStream
@@ -116,11 +114,6 @@ public interface ZinStream
 	 * @return The version that was read in.
 	 */
 	public int readVersion(int... validArr) throws IOException;
-
-	/**
-	 * Reads in the ZioRaw object from this stream
-	 */
-	public void readZioRaw(ZioRaw aBZioRaw) throws IOException;
 
 	/**
 	 * Method to skip numBytes.

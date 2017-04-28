@@ -129,7 +129,7 @@ public class LatLonUnitProvider extends BaseUnitProvider
 	}
 
 	@Override
-	public void zioReadRaw(ZinStream aStream) throws IOException
+	public void zioRead(ZinStream aStream) throws IOException
 	{
 		int decimalPlaces;
 		boolean isRawUnit, isZeroCentered, isSecondsShown;
@@ -150,7 +150,7 @@ public class LatLonUnitProvider extends BaseUnitProvider
 	}
 
 	@Override
-	public void zioWriteRaw(ZoutStream aStream) throws IOException
+	public void zioWrite(ZoutStream aStream) throws IOException
 	{
 		int decimalPlaces;
 		boolean isRawUnit, isZeroCentered, isSecondsShown;

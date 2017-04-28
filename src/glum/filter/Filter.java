@@ -1,8 +1,8 @@
 package glum.filter;
 
-import glum.zio.raw.ZioRaw;
+import glum.zio.ZioObj;
 
-public interface Filter<G1> extends ZioRaw
+public interface Filter<G1> extends ZioObj
 {
 	/**
 	 * Method that returns true if aItem passes this filter

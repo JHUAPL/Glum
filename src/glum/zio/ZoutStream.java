@@ -1,10 +1,8 @@
 package glum.zio;
 
-import glum.zio.raw.ZioRaw;
-
 import java.io.IOException;
 
-public interface ZoutStream
+public interface ZoutStream extends AutoCloseable
 {
 	/**
 	 * Releases any resources associated with the stream
@@ -14,8 +12,8 @@ public interface ZoutStream
 	/**
 	 * Returns the checksum (as a string) of the stream.
 	 * <P>
-	 * Note, if the stream is still open, then the returned value will be the checksum evaluated as of the last byte sent
-	 * to this stream (with no buffering effects - closing the stream immediately will not result in a different value).
+	 * Note, if the stream is still open, then the returned value will be the checksum evaluated as of the last byte sent to this stream (with no buffering
+	 * effects - closing the stream immediately will not result in a different value).
 	 */
 	public String getCheckSum() throws IOException;
 
@@ -73,8 +71,8 @@ public interface ZoutStream
 	public void writeString(String aStr) throws IOException;
 
 	/**
-	 * Utility method to write out a raw string. Note the inverse function is {@link ZinStream#readRawStringAndValidate}.
-	 * The string will be interpreted as a US-ASCII string.
+	 * Utility method to write out a raw string. Note the inverse function is {@link ZinStream#readRawStringAndValidate}. The string will be interpreted as a
+	 * US-ASCII string.
 	 */
 	public void writeRawString(String aStr) throws IOException;
 
@@ -95,14 +93,8 @@ public interface ZoutStream
 	public void writeFully(byte[] dstArr) throws IOException;
 
 	/**
-	 * Method to write the version to the stream. To properly read the version, use the inverse function
-	 * {@link ZinStream#readVersion}.
+	 * Method to write the version to the stream. To properly read the version, use the inverse function {@link ZinStream#readVersion}.
 	 */
 	public void writeVersion(int aVersion) throws IOException;
-
-	/**
-	 * Writes the ZioRaw object to this stream
-	 */
-	public void writeZioRaw(ZioRaw aBinRaw) throws IOException;
 
 }

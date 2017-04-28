@@ -4,6 +4,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.IOException;
 import java.util.*;
+
 import javax.swing.*;
 import javax.swing.border.*;
 import javax.swing.event.ListSelectionEvent;
@@ -26,13 +27,10 @@ import glum.gui.panel.itemList.ItemHandler;
 import glum.gui.panel.itemList.ItemListPanel;
 import glum.gui.panel.itemList.StaticItemProcessor;
 import glum.gui.panel.itemList.query.*;
-import glum.zio.ZinStream;
-import glum.zio.ZoutStream;
-import glum.zio.raw.ZioRaw;
-
+import glum.zio.*;
 import net.miginfocom.swing.MigLayout;
 
-public class EditTablePanel extends GlassPanel implements ActionListener, ZioRaw, ListSelectionListener
+public class EditTablePanel extends GlassPanel implements ActionListener, ZioObj, ListSelectionListener
 {
 	// GUI vars
 	protected JLabel titleL;
@@ -189,13 +187,13 @@ public class EditTablePanel extends GlassPanel implements ActionListener, ZioRaw
 	}
 	
 	@Override
-	public void zioReadRaw(ZinStream aStream) throws IOException
+	public void zioRead(ZinStream aStream) throws IOException
 	{
 		ProfileConfig aProfile;
 		int numItems, profileIndex;
 		boolean aBool;
 		
-		super.zioReadRaw(aStream);
+		super.zioRead(aStream);
 		
 		aStream.readVersion(0);
 		
@@ -208,7 +206,7 @@ public class EditTablePanel extends GlassPanel implements ActionListener, ZioRaw
 		for (int c1 = 0; c1 < numItems; c1++)
 		{
 			aProfile = new ProfileConfig("unnamed", myItemProcessor.getItems());
-			aProfile.zioReadRaw(aStream);
+			aProfile.zioRead(aStream);
 			
 			profileBox.addItem(aProfile);
 		}
@@ -219,18 +217,18 @@ public class EditTablePanel extends GlassPanel implements ActionListener, ZioRaw
 			profileBox.setSelectedIndex(profileIndex);
 		profileBox.addActionListener(this);
 		
-		refItemHandler.zioReadRaw(aStream);
+		refItemHandler.zioRead(aStream);
 		
 		updateGui();
 	}
 
 	@Override
-	public void zioWriteRaw(ZoutStream aStream) throws IOException
+	public void zioWrite(ZoutStream aStream) throws IOException
 	{
 		int numItems, profileIndex;
 		boolean aBool;
 		
-		super.zioWriteRaw(aStream);
+		super.zioWrite(aStream);
 
 		aStream.writeVersion(0);
 		
@@ -242,13 +240,13 @@ public class EditTablePanel extends GlassPanel implements ActionListener, ZioRaw
 		
 		for (ProfileConfig aProfile : profileBox.getAllItems())
 		{
-			aProfile.zioWriteRaw(aStream);
+			aProfile.zioWrite(aStream);
 		}
 		
 		profileIndex = profileBox.getSelectedIndex();
 		aStream.writeInt(profileIndex);
 		
-		refItemHandler.zioWriteRaw(aStream);
+		refItemHandler.zioWrite(aStream);
 	}
 
 	@Override

@@ -1,15 +1,13 @@
 package glum.gui.panel;
 
 import glum.gui.GuiUtil;
-import glum.zio.ZinStream;
-import glum.zio.ZoutStream;
-import glum.zio.raw.ZioRaw;
+import glum.zio.*;
 
 import java.awt.Component;
 import java.awt.Dimension;
 import java.io.IOException;
 
-public abstract class GlassPanel extends GPanel implements ZioRaw
+public abstract class GlassPanel extends GPanel implements ZioObj
 {
 	// State vars
 	protected Component myGlassPane;
@@ -91,21 +89,21 @@ public abstract class GlassPanel extends GPanel implements ZioRaw
 	}
 	
 	@Override
-	public void zioReadRaw(ZinStream aStream) throws IOException
+	public void zioRead(ZinStream aStream) throws IOException
 	{
 		aStream.readVersion(0);
 		
-		if (myGlassPane instanceof ZioRaw)
-			((ZioRaw)myGlassPane).zioReadRaw(aStream);
+		if (myGlassPane instanceof ZioObj)
+			((ZioObj)myGlassPane).zioRead(aStream);
 	}
 	
 	@Override
-	public void zioWriteRaw(ZoutStream aStream) throws IOException
+	public void zioWrite(ZoutStream aStream) throws IOException
 	{
 		aStream.writeVersion(0);
 		
-		if (myGlassPane instanceof ZioRaw)
-			((ZioRaw)myGlassPane).zioWriteRaw(aStream);
+		if (myGlassPane instanceof ZioObj)
+			((ZioObj)myGlassPane).zioWrite(aStream);
 	}
 	
 }

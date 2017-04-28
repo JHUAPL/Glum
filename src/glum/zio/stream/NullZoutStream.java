@@ -1,6 +1,6 @@
-package glum.zio;
+package glum.zio.stream;
 
-import glum.zio.raw.ZioRaw;
+import glum.zio.ZoutStream;
 
 import java.io.IOException;
 
@@ -12,12 +12,12 @@ import com.google.common.base.Charsets;
 public class NullZoutStream implements ZoutStream
 {
 	private int byteCount;
-	
+
 	public NullZoutStream()
 	{
 		byteCount = 0;
 	}
-	
+
 	/**
 	 * Returns the number of bytes that have been written
 	 */
@@ -97,29 +97,29 @@ public class NullZoutStream implements ZoutStream
 	{
 		byte[] data;
 		int size;
-		
+
 		// Null strings are handled in special fashion
 		if (aStr == null)
 		{
 			byteCount += 2;
 			return;
 		}
-		
+
 		// Empty strings are handled in special fashion
 		if (aStr.equals("") == true)
 		{
 			byteCount += 2;
 			return;
 		}
-		
+
 		// Transform the string to it's UTF-8 bytes
 		data = aStr.getBytes(Charsets.UTF_8);
 		size = data.length;
-		
+
 		// Ensure the string size is less than 0x00FFFF
 		if (size >= 0x00FFFF)
 			throw new RuntimeException("Transformed UTF-8 string is too large! Max size: " + (0x00FFFF - 1) + "  Curr size:" + size);
-		
+
 		byteCount += 2 + size;
 	}
 
@@ -148,12 +148,6 @@ public class NullZoutStream implements ZoutStream
 			byteCount++;
 		else
 			byteCount += 5;
-	}
-
-	@Override
-	public void writeZioRaw(ZioRaw aZioRaw) throws IOException
-	{
-		aZioRaw.zioWriteRaw(this);
 	}
 
 }

@@ -1,12 +1,10 @@
 package glum.gui.info;
 
-import glum.zio.ZinStream;
-import glum.zio.ZoutStream;
-import glum.zio.raw.ZioRaw;
+import glum.zio.*;
 
 import java.io.IOException;
 
-public class FilePathInfo implements ZioRaw
+public class FilePathInfo implements ZioObj
 {
 	// State vars
 	protected String filePath;
@@ -22,7 +20,7 @@ public class FilePathInfo implements ZioRaw
 	}
 
 	@Override
-	public void zioReadRaw(ZinStream aStream) throws IOException
+	public void zioRead(ZinStream aStream) throws IOException
 	{
 		aStream.readVersion(0);
 
@@ -30,7 +28,7 @@ public class FilePathInfo implements ZioRaw
 	}
 
 	@Override
-	public void zioWriteRaw(ZoutStream aStream) throws IOException
+	public void zioWrite(ZoutStream aStream) throws IOException
 	{
 		aStream.writeVersion(0);
 

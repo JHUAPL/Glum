@@ -1,6 +1,6 @@
 package glum.zio.util;
 
-import glum.zio.BaseZoutStream;
+import glum.zio.stream.BaseZoutStream;
 
 import java.io.IOException;
 import java.io.OutputStream;

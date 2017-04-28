@@ -1,4 +1,4 @@
-package glum.zio;
+package glum.zio.stream;
 
 import java.io.IOException;
 import java.util.Arrays;

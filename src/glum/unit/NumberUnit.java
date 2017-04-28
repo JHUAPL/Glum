@@ -14,8 +14,8 @@ public class NumberUnit implements Unit
 	protected double conversionFactor;
 
 	/**
-	* Constructor
-	*/
+	 * Constructor
+	 */
 	public NumberUnit(String aFullLabel, String aShortLabel, double aConversionFactor)
 	{
 		this(aFullLabel, aShortLabel, aConversionFactor, (DecimalFormat)null);
@@ -52,7 +52,7 @@ public class NumberUnit implements Unit
 				aStr += "0";
 		}
 		format = new DecimalFormat(aStr);
-	}	
+	}
 
 	/**
 	 * Returns whether this unit supports floating point numbers
@@ -61,13 +61,13 @@ public class NumberUnit implements Unit
 	{
 		if (format != null && format.getMaximumFractionDigits() == 0)
 			return false;
-		
+
 		return true;
 
 //System.out.println("NumFracDigits:" + format.getMaximumFractionDigits());		
 //		return format.isParseIntegerOnly();
 	}
-	
+
 	/**
 	 * Sets in the string representation for NaN
 	 */
@@ -75,7 +75,7 @@ public class NumberUnit implements Unit
 	{
 		nanStr = aStr;
 	}
-	
+
 	@Override
 	public Format getFormat()
 	{
@@ -84,7 +84,7 @@ public class NumberUnit implements Unit
 
 		return (Format)format.clone();
 	}
-	
+
 	@Override
 	public String getConfigName()
 	{
@@ -103,61 +103,42 @@ public class NumberUnit implements Unit
 	@Override
 	public String getString(Object aVal)
 	{
-		String aStr;
-
-		aStr = "N/A";
 		if (aVal instanceof Number == false)
-			return aStr;
+			return nanStr;
+
+		double doubleVal = ((Number)aVal).doubleValue();
+		if (Double.isNaN(doubleVal) == true)
+			return nanStr;
 
 		if (format == null)
-			return "" + (((Number)aVal).doubleValue() * conversionFactor);
+			return "" + doubleVal * conversionFactor;
 
 		synchronized (format)
 		{
-			return format.format(((Number)aVal).doubleValue() * conversionFactor);
+			return format.format(doubleVal * conversionFactor);
 		}
 	}
 
 	@Override
 	public String getString(Object aVal, boolean isDetailed)
 	{
-		String aStr;
-		double aDouble;
-
-		if (aVal instanceof Number == false)
-			return nanStr;
-		
-		aDouble = ((Number)aVal).doubleValue();
-		if (Double.isNaN(aDouble) == true)
-			return nanStr;
-
-		// Format the number
-		if (format == null)
-		{
-			aStr = "" + aDouble * conversionFactor;
-		}
-		else
-		{
-			synchronized (format)
-			{
-				aStr = format.format(aDouble * conversionFactor);
-			}
-		}
+		// Delegate
+		String retStr = getString(aVal);
 
 		// Add the label component
 		if (isDetailed == true)
-			aStr += " " + fullLabel;
+			retStr += " " + fullLabel;
 		else
-			aStr += " " + shortLabel;
+			retStr += " " + shortLabel;
 
-		return aStr;
+		return retStr;
 	}
 
 	@Override
 	public double parseString(String aStr, double eVal)
 	{
 		double aVal;
-		
+
 		aVal = GuiUtil.readDouble(aStr, Double.NaN);
 		return toModel(aVal);
 	}

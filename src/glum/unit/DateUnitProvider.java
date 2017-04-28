@@ -133,7 +133,7 @@ public class DateUnitProvider extends BaseUnitProvider
 	}
 
 	@Override
-	public void zioReadRaw(ZinStream aStream) throws IOException
+	public void zioRead(ZinStream aStream) throws IOException
 	{
 		// Read the configuration
 		aStream.readVersion(0);
@@ -151,7 +151,7 @@ public class DateUnitProvider extends BaseUnitProvider
 	}
 
 	@Override
-	public void zioWriteRaw(ZoutStream aStream) throws IOException
+	public void zioWrite(ZoutStream aStream) throws IOException
 	{
 		// Write the configuration
 		aStream.writeVersion(0);

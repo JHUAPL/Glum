@@ -135,7 +135,7 @@ public class DecimalUnitProvider extends BaseUnitProvider
 	}
 
 	@Override
-	public void zioReadRaw(ZinStream aStream) throws IOException
+	public void zioRead(ZinStream aStream) throws IOException
 	{
 		Unit protoUnit;
 		int protoUnitIdx;
@@ -157,7 +157,7 @@ public class DecimalUnitProvider extends BaseUnitProvider
 	}
 
 	@Override
-	public void zioWriteRaw(ZoutStream aStream) throws IOException
+	public void zioWrite(ZoutStream aStream) throws IOException
 	{
 		int protoUnitIdx;
 		int decimalPlaces;

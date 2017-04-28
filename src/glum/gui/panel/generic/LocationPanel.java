@@ -150,23 +150,23 @@ public class LocationPanel extends GlassPanel implements ActionListener, Generic
 	}
 
 	@Override
-	public void zioReadRaw(ZinStream aStream) throws IOException
+	public void zioRead(ZinStream aStream) throws IOException
 	{
-		super.zioReadRaw(aStream);
+		super.zioRead(aStream);
 
 		aStream.readVersion(0);
 
-		loaderInfo.zioReadRaw(aStream);
+		loaderInfo.zioRead(aStream);
 	}
 
 	@Override
-	public void zioWriteRaw(ZoutStream aStream) throws IOException
+	public void zioWrite(ZoutStream aStream) throws IOException
 	{
-		super.zioWriteRaw(aStream);
+		super.zioWrite(aStream);
 
 		aStream.writeVersion(0);
 
-		loaderInfo.zioWriteRaw(aStream);
+		loaderInfo.zioWrite(aStream);
 	}
 
 	/**
