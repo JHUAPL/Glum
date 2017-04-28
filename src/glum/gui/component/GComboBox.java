@@ -7,7 +7,7 @@ import java.util.*;
 import javax.swing.JComboBox;
 import javax.swing.ListCellRenderer;
 
-public class GComboBox<G1> extends JComboBox
+public class GComboBox<G1> extends JComboBox<G1>
 {
 	// State vars
 	protected GComboBoxModel<G1> itemModel;
@@ -78,9 +78,13 @@ public class GComboBox<G1> extends JComboBox
 			removeActionListener(aListener);
 		
 		itemModel.setSelectedItem(aItem);
+		super.setSelectedItem(aItem);
 
 		for (ActionListener aListener : listenerArr)
 			addActionListener(aListener);
+
+		// We must force a repaint since any ActionListener responsible will never get the update 
+		repaint();
 	}
 	
 	/**
