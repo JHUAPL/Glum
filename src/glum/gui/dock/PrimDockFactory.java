@@ -170,7 +170,7 @@ public class PrimDockFactory implements DockFactory<PrimDock, DefaultDockablePer
 			if (spawnConstructor != null)
 				rDockable = spawnConstructor.newInstance(parmValues);
 			else
-				rDockable = spawnClass.newInstance();
+				rDockable = spawnClass.getDeclaredConstructor().newInstance();
 		}
 		catch (Exception aExp)
 		{

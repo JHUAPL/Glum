@@ -8,8 +8,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.UnknownHostException;
-
-import javax.xml.bind.DatatypeConverter;
+import java.util.Base64;
 
 public class NetUtil
 {
@@ -22,32 +21,31 @@ public class NetUtil
 		{
 			return aConnection.getResponseCode();
 		}
-		catch (IOException aExp)
+		catch(IOException aExp)
 		{
 			return -1;
 		}
 	}
-	
+
 	/**
 	 * Utility method to return the input stream associated with a URL
 	 */
 	public static InputStream getInputStream(URLConnection aConnection, Credential aCredential) throws IOException
 	{
-		InputStream inStream;
-		String authStr;
-
 		// Properly setup the credentials
 		if (aCredential != null)
 		{
-			authStr = aCredential.getUsername() + ":" + aCredential.getPasswordAsString();
-			authStr = DatatypeConverter.printBase64Binary(authStr.getBytes());
+			String username = aCredential.getUsername();
+			String password = aCredential.getPasswordAsString();
+			String authStr = username + ":" + password;
+			authStr = Base64.getEncoder().encodeToString(authStr.getBytes());
 			aConnection.setRequestProperty("Authorization", "Basic " + authStr);
 		}
-		
+
 		// Retrieve the InputStream
 		aConnection.connect();
-		inStream = aConnection.getInputStream();
-		
+		InputStream inStream = aConnection.getInputStream();
+
 		return inStream;
 	}
 
@@ -64,44 +62,40 @@ public class NetUtil
 	 */
 	public static Result getResult(Exception aExp, URLConnection aConnection)
 	{
-		Throwable aCause;
-
 		// See if there was a problem with the HTTP Connection
 		if (aConnection instanceof HttpURLConnection)
 		{
-			int responseCode;
-
-			responseCode = getResponseCode((HttpURLConnection)aConnection);
+			int responseCode = getResponseCode((HttpURLConnection)aConnection);
 			switch (responseCode)
 			{
 				case HttpURLConnection.HTTP_UNAUTHORIZED:
-				return Result.BadCredentials;
+					return Result.BadCredentials;
 
 				case HttpURLConnection.HTTP_UNSUPPORTED_TYPE:
-				return Result.UnsupportedConnection;
+					return Result.UnsupportedConnection;
 
 				case HttpURLConnection.HTTP_NOT_FOUND:
 				case HttpURLConnection.HTTP_NO_CONTENT:
-				return Result.InvalidResource;
+					return Result.InvalidResource;
 
 //				case HttpURLConnection.HTTP_UNAVAILABLE:
-//				return Result.UnreachableHost;
+//					return Result.UnreachableHost;
 
 				default:
-				break;
+					break;
 			}
 		}
 
 		// Evaluate the Exception
-		aCause = aExp;
-		while (aCause != null)
+		Throwable tmpCause = aExp;
+		while (tmpCause != null)
 		{
-			if (aCause instanceof UnknownHostException)
+			if (tmpCause instanceof UnknownHostException)
 				return Result.UnreachableHost;
-			else if (aCause instanceof ConnectException)
+			else if (tmpCause instanceof ConnectException)
 				return Result.ConnectFailure;
 
-			aCause = aCause.getCause();
+			tmpCause = tmpCause.getCause();
 		}
 
 		return Result.Undefined;
@@ -115,24 +109,16 @@ public class NetUtil
 	 */
 	public static Result checkCredentials(String uriRoot, Credential aCredential)
 	{
-		URLConnection aConnection;
-		InputStream inStream;
-		String username, password;
-		String authStr;
-		URL srcURL;
-//		int fullLen;
-
-		aConnection = null;
-		inStream = null;
+		URLConnection aConnection = null;
+		InputStream inStream = null;
 		try
 		{
-			srcURL = new URL(uriRoot);
+			URL srcURL = new URL(uriRoot);
 
-			username = aCredential.getUsername();
-			password = aCredential.getPasswordAsString();
-			authStr = username + ":" + password;
-			authStr = DatatypeConverter.printBase64Binary(authStr.getBytes());
-//			authStr = new sun.misc.BASE64Encoder().encode((username + ":" + password).getBytes());
+			String username = aCredential.getUsername();
+			String password = aCredential.getPasswordAsString();
+			String authStr = username + ":" + password;
+			authStr = Base64.getEncoder().encodeToString(authStr.getBytes());
 			aConnection = srcURL.openConnection();
 			aConnection.setRequestProperty("Authorization", "Basic " + authStr);
 			aConnection.connect();
@@ -143,7 +129,7 @@ public class NetUtil
 			inStream.close();
 			return Result.Success;
 		}
-		catch (Exception aExp)
+		catch(Exception aExp)
 		{
 //			aExp.printStackTrace();
 			return getResult(aExp, aConnection);

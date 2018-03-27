@@ -11,7 +11,7 @@ import com.google.common.collect.Lists;
 /**
  * Generified mutable ListModel
  */
-public class GListModel<G1> extends AbstractListModel
+public class GListModel<G1> extends AbstractListModel<G1>
 {
 	protected List<G1> itemList;
 
@@ -20,11 +20,11 @@ public class GListModel<G1> extends AbstractListModel
 		itemList = Lists.newArrayList(aItemList);
 	}
 
-	public GListModel(G1... aItemArr)
-	{
-		itemList = Lists.newArrayList(aItemArr);
-	}
-
+//	public GListModel(G1... aItemArr)
+//	{
+//		itemList = Lists.newArrayList(aItemArr);
+//	}
+//
 	/**
 	 * Adds aItem to this model
 	 */

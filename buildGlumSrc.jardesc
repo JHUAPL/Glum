@@ -4,15 +4,7 @@
     <options buildIfNeeded="true" compress="true" descriptionLocation="/glum/buildGlumSrc.jardesc" exportErrors="false" exportWarnings="true" includeDirectoryEntries="false" overwrite="true" saveDescription="false" storeRefactorings="false" useSourceFolders="false"/>
     <storedRefactorings deprecationInfo="true" structuralOnly="false"/>
     <selectedProjects/>
-    <manifest generateManifest="false" manifestLocation="/glum/src/Manifest.txt" manifestVersion="1.0" reuseManifest="false" saveManifest="false" usesManifest="false">
-        <sealing sealJar="false">
-            <packagesToSeal/>
-            <packagesToUnSeal/>
-        </sealing>
-    </manifest>
     <selectedElements exportClassFiles="false" exportJavaFiles="true" exportOutputFolder="false">
         <javaElement handleIdentifier="=glum/src"/>
-        <folder path="/glum/build/doc"/>
-        <folder path="/glum/build/classes"/>
     </selectedElements>
 </jardesc>

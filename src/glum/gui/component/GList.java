@@ -20,9 +20,9 @@ import com.google.common.collect.Lists;
 public class GList<G1> extends JComponent implements GenericCodes, ListSelectionListener
 {
 	// Gui vars
-	private JList refList;
+	private JList<G1> refList;
 	private GListModel<G1> refModel;
-	
+
 	// State vars
 	private ActionListener refActionListener;
 	private ListSelectionListener refListSelectionListener;
@@ -31,36 +31,36 @@ public class GList<G1> extends JComponent implements GenericCodes, ListSelection
 	{
 		refActionListener = null;
 		refListSelectionListener = null;
-		
-		refModel = new GListModel<G1>(aItemList);
-		refList = new JList(refModel);
+
+		refModel = new GListModel<>(aItemList);
+		refList = new JList<>(refModel);
 		buildGui(aListener);
 	}
-	
-	public GList(Object aListener, G1... aItemArr)
-	{
-		refActionListener = null;
-		refListSelectionListener = null;
-		
-		refModel = new GListModel<G1>(aItemArr);
-		refList = new JList(refModel);
-		buildGui(aListener);
-	}
-	
+
+//	public GList(Object aListener, G1... aItemArr)
+//	{
+//		refActionListener = null;
+//		refListSelectionListener = null;
+//
+//		refModel = new GListModel<G1>(aItemArr);
+//		refList = new JList<>(refModel);
+//		buildGui(aListener);
+//	}
+//
 	/**
 	 * Returns the (first) selected item
 	 */
 	public G1 getSelectedItem()
 	{
 		int selectedIndex;
-		
+
 		selectedIndex = refList.getSelectedIndex();
 		if (selectedIndex == -1)
 			return null;
-		
+
 		return refModel.getElementAt(selectedIndex);
 	}
-	
+
 	/**
 	 * Returns all of the selected items
 	 */
@@ -68,17 +68,17 @@ public class GList<G1> extends JComponent implements GenericCodes, ListSelection
 	{
 		ArrayList<G1> retList;
 		int[] indexArr;
-		
+
 		indexArr = refList.getSelectedIndices();
-		
+
 		retList = Lists.newArrayList();
 		for (int aIndex : indexArr)
 			retList.add(refModel.getElementAt(aIndex));
-		
+
 		retList.trimToSize();
 		return retList;
 	}
-	
+
 	/**
 	 * Replaces all of the items in the list with aItemList.
 	 */
@@ -88,7 +88,7 @@ public class GList<G1> extends JComponent implements GenericCodes, ListSelection
 		refList.setModel(new GListModel<G1>(aItemList));
 		refList.addListSelectionListener(this);
 	}
-	
+
 	/**
 	 * Sets aItem as the selected item.
 	 */
@@ -106,13 +106,13 @@ public class GList<G1> extends JComponent implements GenericCodes, ListSelection
 	{
 		int[] idArr;
 		int c1;
-		
+
 		// Ensure we are executed only on the proper thread
 		if (SwingUtilities.isEventDispatchThread() == false)
 			throw new RuntimeException("GList.selectItems() not executed on the AWT event dispatch thread.");
-		
+
 		refList.removeListSelectionListener(this);
-		
+
 		c1 = 0;
 		idArr = new int[aItemList.size()];
 		for (G1 aItem : aItemList)
@@ -122,10 +122,10 @@ public class GList<G1> extends JComponent implements GenericCodes, ListSelection
 		}
 
 		refList.setSelectedIndices(idArr);
-		
+
 		refList.addListSelectionListener(this);
 	}
-	
+
 	@Override
 	public void setEnabled(boolean aBool)
 	{
@@ -137,7 +137,7 @@ public class GList<G1> extends JComponent implements GenericCodes, ListSelection
 	{
 		if (refListSelectionListener != null)
 			refListSelectionListener.valueChanged(new ListSelectionEvent(this, aEvent.getFirstIndex(), aEvent.getLastIndex(), aEvent.getValueIsAdjusting()));
-		
+
 		if (refActionListener != null)
 			refActionListener.actionPerformed(new ActionEvent(this, ID_UPDATE, "update"));
 	}
@@ -151,9 +151,9 @@ public class GList<G1> extends JComponent implements GenericCodes, ListSelection
 			refActionListener = (ActionListener)aListener;
 		if (aListener instanceof ListSelectionListener)
 			refListSelectionListener = (ListSelectionListener)aListener;
-		
+
 		setLayout(new BorderLayout());
 		add(refList);
 	}
-	
+
 }

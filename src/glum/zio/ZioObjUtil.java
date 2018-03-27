@@ -25,7 +25,7 @@ public class ZioObjUtil
 			// Serialize the class
 			try
 			{
-				G1 aItem = aClass.newInstance();
+				G1 aItem = aClass.getDeclaredConstructor().newInstance();
 				aItem.zioRead(aStream);
 				itemList.add(aItem);
 			}
@@ -39,8 +39,8 @@ public class ZioObjUtil
 	}
 
 	/**
-	 * Utility method to read a preloaded list of ZioObj items. The passed in list must contain the exact number of items as that stored on disk and in the
-	 * correct order.
+	 * Utility method to read a preloaded list of ZioObj items. The passed in list must contain the exact number of items
+	 * as that stored on disk and in the correct order.
 	 * <P>
 	 * Format: <numItems> (<ZioObj>)*
 	 */
@@ -97,8 +97,9 @@ public class ZioObjUtil
 	}
 
 	/**
-	 * Utility method to read a map of ZioObj items. The items are assumed to be preloaded. Thus the passed in map must contain as many items (and in the order)
-	 * as that which will be read in from the disk. It is therefore advisable that only LinkedHashMaps be used with this method.
+	 * Utility method to read a map of ZioObj items. The items are assumed to be preloaded. Thus the passed in map must
+	 * contain as many items (and in the order) as that which will be read in from the disk. It is therefore advisable
+	 * that only LinkedHashMaps be used with this method.
 	 */
 	public static void readMap(ZinStream aStream, Map<String, ? extends ZioObj> aItemMap) throws IOException
 	{
@@ -146,12 +147,11 @@ public class ZioObjUtil
 
 	public static <G1 extends ZioObj> G1 read(ZinStream aStream, Class<G1> aClass) throws IOException
 	{
-		G1 aItem;
-
 		// Serialize the class
+		G1 aItem;
 		try
 		{
-			aItem = aClass.newInstance();
+			aItem = aClass.getDeclaredConstructor().newInstance();
 			aItem.zioRead(aStream);
 		}
 		catch(Exception aException)
@@ -172,7 +172,7 @@ public class ZioObjUtil
 		G1 aItem;
 		try
 		{
-			aItem = aClass.newInstance();
+			aItem = aClass.getDeclaredConstructor().newInstance();
 			aItem.zioRead(aStream);
 		}
 		catch(Exception aException)

@@ -15,7 +15,7 @@ public class TimeZoneCellRenderer extends DefaultListCellRenderer
 	}
 
 	@Override
-	public Component getListCellRendererComponent(JList list, Object aObj, int index, boolean isSelected, boolean hasFocus)
+	public Component getListCellRendererComponent(JList<?> list, Object aObj, int index, boolean isSelected, boolean hasFocus)
 	{
 		JLabel retL;
 		String aStr;

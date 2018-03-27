@@ -1,27 +1,24 @@
 package glum.gui.unit;
 
-import java.awt.*;
-import java.awt.event.*;
+import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.List;
 
 import javax.swing.*;
-import javax.swing.event.*;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.table.*;
-
-import net.miginfocom.swing.MigLayout;
 
 import glum.gui.FocusUtil;
 import glum.gui.GuiUtil;
 import glum.gui.action.ClickAction;
 import glum.gui.panel.CardPanel;
-import glum.gui.panel.itemList.BasicItemHandler;
-import glum.gui.panel.itemList.ItemHandler;
-import glum.gui.panel.itemList.ItemListPanel;
-import glum.gui.panel.itemList.StaticItemProcessor;
+import glum.gui.panel.itemList.*;
 import glum.gui.panel.itemList.query.QueryComposer;
-import glum.reflect.FunctionRunnable;
 import glum.unit.UnitListener;
 import glum.unit.UnitProvider;
+import net.miginfocom.swing.MigLayout;
 
 public class UnitConfigurationDialog extends JDialog implements ActionListener, ListSelectionListener, UnitListener
 {
@@ -34,16 +31,16 @@ public class UnitConfigurationDialog extends JDialog implements ActionListener, 
 	// State vars
 	private StaticItemProcessor<UnitProvider> itemProcessor;
 
-	public UnitConfigurationDialog(JFrame parentFrame)
+	public UnitConfigurationDialog(JFrame aParentFrame)
 	{
 		// Make sure we call the parent
-		super(parentFrame);
+		super(aParentFrame);
 
 		// Set the characteristics for this dialog
 		setTitle("Edit Unit");
 
 		setDefaultCloseOperation(HIDE_ON_CLOSE);
-		setLocationRelativeTo(parentFrame);
+		setLocationRelativeTo(aParentFrame);
 		setModal(false);
 
 		// Build the actual GUI
@@ -109,11 +106,11 @@ public class UnitConfigurationDialog extends JDialog implements ActionListener, 
 	}
 
 	@Override
-	public void actionPerformed(ActionEvent e)
+	public void actionPerformed(ActionEvent aEvent)
 	{
 		Object source;
 
-		source = e.getSource();
+		source = aEvent.getSource();
 		if (source == closeB)
 		{
 			setVisible(false);
@@ -210,10 +207,12 @@ public class UnitConfigurationDialog extends JDialog implements ActionListener, 
 		editorPanel.setMaximumSize(new Dimension(5000, aDim.height));
 		// Hack to get the editorPanel resize properly. Not sure why invalidate(), validate() do not work
 		int aHeight = getHeight();
-		SwingUtilities.invokeLater(new FunctionRunnable(this, "setSize", getWidth(), aHeight - 1));
-		SwingUtilities.invokeLater(new FunctionRunnable(this, "setSize", getWidth(), aHeight));
-//		SwingUtilities.invokeLater(new FunctionRunnable(editorPanel, "invalidate"));
-//		SwingUtilities.invokeLater(new FunctionRunnable(editorPanel, "validate"));
+		Runnable tmpRunnable1 = () -> setSize(getWidth(), aHeight - 1);
+		Runnable tmpRunnable2 = () -> setSize(getWidth(), aHeight);
+		SwingUtilities.invokeLater(tmpRunnable1);
+		SwingUtilities.invokeLater(tmpRunnable2);
+//		Runnable tmpRunnable1 = () -> editorPanel.invalidate();
+//		Runnable tmpRunnable2 = () -> editorPanel.validate();
 //		invalidate();
 //		validate();
 	}
@@ -257,7 +256,8 @@ public class UnitConfigurationDialog extends JDialog implements ActionListener, 
 	 */
 	enum Lookup
 	{
-		Key, Value,
+		Key,
+		Value,
 	};
 
 	public class UnitProviderHandler extends BasicItemHandler<UnitProvider>
@@ -268,25 +268,25 @@ public class UnitConfigurationDialog extends JDialog implements ActionListener, 
 		}
 
 		@Override
-		public Object getColumnValue(UnitProvider aItem, int colNum)
+		public Object getColumnValue(UnitProvider aItem, int aColNum)
 		{
 			Enum<?> refKey;
 
 			// Insanity check
-			if (colNum < 0 && colNum >= fullAttributeList.size())
+			if (aColNum < 0 && aColNum >= fullAttributeList.size())
 				return null;
 
-			refKey = fullAttributeList.get(colNum).refKey;
+			refKey = fullAttributeList.get(aColNum).refKey;
 			switch ((Lookup)refKey)
 			{
 				case Key:
-				return aItem.getDisplayName();
+					return aItem.getDisplayName();
 
 				case Value:
-				return aItem.getConfigName();
+					return aItem.getConfigName();
 
 				default:
-				break;
+					break;
 			}
 
 			return null;

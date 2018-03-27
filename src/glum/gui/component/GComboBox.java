@@ -18,7 +18,7 @@ public class GComboBox<G1> extends JComboBox<G1>
 		setModel(itemModel);
 	}
 	
-	public GComboBox(ActionListener aListener, ListCellRenderer aRenderer)
+	public GComboBox(ActionListener aListener, ListCellRenderer<? super G1> aRenderer)
 	{
 		this();
 		
@@ -158,7 +158,7 @@ public class GComboBox<G1> extends JComboBox<G1>
 		for (ActionListener aListener : listenerArr)
 			addActionListener(aListener);
 	}
-	
+
 // Note you cannot do the below as internal methods within JComboBox make calls to
 // the methods below.
 //	@Override

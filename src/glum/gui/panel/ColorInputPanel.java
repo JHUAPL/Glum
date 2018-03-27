@@ -1,19 +1,20 @@
 package glum.gui.panel;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.util.*;
+import glum.gui.component.GNumberField;
+import glum.unit.*;
+
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
 import javax.swing.*;
-import javax.swing.event.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 import net.miginfocom.swing.MigLayout;
 
-import glum.gui.component.GNumberField;
-import glum.unit.ConstUnitProvider;
-import glum.unit.NumberUnit;
-import glum.unit.UnitProvider;
-
-public class ColorInputPanel extends JPanel implements ActionListener, ChangeListener
+public class ColorInputPanel extends GPanel implements ActionListener, ChangeListener
 {
 	// Constants
 	private static final Font miniFont = new Font("Serif", Font.PLAIN, 10);
@@ -24,54 +25,22 @@ public class ColorInputPanel extends JPanel implements ActionListener, ChangeLis
 	private JSlider redS, greenS, blueS;
 	private GNumberField redNF, greenNF, blueNF;
 
-	// State vars
-	private Collection<ActionListener> myActionListeners;
-
 	/**
 	 * Constructor
 	 */
 	public ColorInputPanel(boolean isHorizontal, boolean showTF)
 	{
-		super();
-
-		// Init internal vars
-		myActionListeners = new LinkedHashSet<ActionListener>();
-
 		// Build the gui areas
 		buildGuiArea(isHorizontal, showTF);
 
 		// Set in the default color
-		setColor(Color.BLACK);
-	}
-
-	/**
-	 * addActionListener
-	 */
-	public synchronized void addActionListener(ActionListener aActionListener)
-	{
-		// Insanity check
-		if (aActionListener == null)
-			return;
-
-		myActionListeners.add(aActionListener);
-	}
-
-	/**
-	 * removeActionListener
-	 */
-	public synchronized void removeActionListener(ActionListener aActionListener)
-	{
-		// Insanity check
-		if (aActionListener == null)
-			return;
-
-		myActionListeners.remove(aActionListener);
+		setColorConfig(Color.BLACK);
 	}
 
 	/**
 	 * Returns the selected color
 	 */
-	public Color getColor()
+	public Color getColorConfig()
 	{
 		int redVal, greenVal, blueVal;
 
@@ -82,9 +51,9 @@ public class ColorInputPanel extends JPanel implements ActionListener, ChangeLis
 	}
 
 	/**
-	 * Sets in the current selected color
+	 * Sets in the current selected color.
 	 */
-	public void setColor(Color aColor)
+	public void setColorConfig(Color aColor)
 	{
 		// Insanity check
 		if (aColor == null)
@@ -103,7 +72,7 @@ public class ColorInputPanel extends JPanel implements ActionListener, ChangeLis
 		updateGui(source);
 
 		// Notify the listeners
-		fireActionEvent(false);
+		notifyListeners(source, ID_UPDATE);
 	}
 
 	@Override
@@ -138,9 +107,9 @@ public class ColorInputPanel extends JPanel implements ActionListener, ChangeLis
 			// Fire off an event only if not being updated
 			aSlider = (JSlider)source;
 			if (aSlider.getValueIsAdjusting() == false)
-				fireActionEvent(false);
+				notifyListeners(source, ID_UPDATE);
 			else
-				fireActionEvent(true);
+				notifyListeners(source, ID_UPDATING);
 		}
 	}
 
@@ -242,33 +211,6 @@ public class ColorInputPanel extends JPanel implements ActionListener, ChangeLis
 			aPanel.add(aNF);
 
 		return aPanel;
-	}
-
-	/**
-	 * Notifies all listeners of color change
-	 */
-	private void fireActionEvent(boolean isChanging)
-	{
-		Collection<ActionListener> currListeners;
-		ActionEvent aEvent;
-
-		// Get a copy of the current set of listeners
-		synchronized(this)
-		{
-			currListeners = new LinkedHashSet<ActionListener>(myActionListeners);
-		}
-
-		// Construct the event
-		if (isChanging == false)
-			aEvent = new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "Color changed.");
-		else
-			aEvent = new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "Color changing.");
-
-		// Notify our listeners
-		for (ActionListener aListener : currListeners)
-		{
-			aListener.actionPerformed(aEvent);
-		}
 	}
 
 	/**

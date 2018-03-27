@@ -99,7 +99,7 @@ public class NumberDocument extends BaseNumberDocument
 		// Ensure that the number is in range
 		if (aVal > maxVal)
 			throw new BadLocationException("Out of numerical range.", offs);
-		else if (aVal < minVal)
+		else if (aVal < minVal && resultStr.length() >= ("" + maxVal).length())
 			throw new BadLocationException("Out of numerical range.", offs);
 
 		// Insert the string

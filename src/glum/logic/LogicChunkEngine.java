@@ -21,7 +21,7 @@ public class LogicChunkEngine implements ActionListener
 	private JMenuBar menuBar;
 	private Map<Object, LogicChunk> menuMap;
 	private ShutdownHook shutdownHook;
-	
+
 	public LogicChunkEngine(Registry aRegistry, URL aURL, String aAppName)
 	{
 		boolean isHeadless;
@@ -32,7 +32,7 @@ public class LogicChunkEngine implements ActionListener
 
 		// Are we headless
 		isHeadless = GraphicsEnvironment.isHeadless();
-		
+
 		// Install our custom shutdown logic
 		shutdownHook = new ShutdownHook(this, aAppName);
 		Runtime.getRuntime().addShutdownHook(shutdownHook);
@@ -53,7 +53,7 @@ public class LogicChunkEngine implements ActionListener
 				if (aLogicChunk != null)
 					aLogicChunk.dispose();
 			}
-			catch (Exception aExp)
+			catch(Exception aExp)
 			{
 				System.out.println("Failed to dispose LogicChunk. Exception:");
 				aExp.printStackTrace();
@@ -79,7 +79,7 @@ public class LogicChunkEngine implements ActionListener
 	{
 		return menuMap.values();
 	}
-	
+
 	/**
 	 * Configures the shutdown hook to exit quickly by not waiting for daemon threads.
 	 */
@@ -98,7 +98,7 @@ public class LogicChunkEngine implements ActionListener
 			return;
 
 		// Find the associated LogicChunk
-		aLogicChunk = (LogicChunk)menuMap.get( aEvent.getSource() );
+		aLogicChunk = (LogicChunk)menuMap.get(aEvent.getSource());
 
 		// Activate the MenuItem
 		if (aLogicChunk != null)
@@ -144,7 +144,7 @@ public class LogicChunkEngine implements ActionListener
 		try
 		{
 			inStream = aURL.openStream();
-			br = new BufferedReader( new InputStreamReader(inStream) );
+			br = new BufferedReader(new InputStreamReader(inStream));
 
 			// Read the lines
 			while (true)
@@ -159,18 +159,16 @@ public class LogicChunkEngine implements ActionListener
 
 				// Get the tokens out of strLine
 				tokenList = aTokenizer.getTokens(strLine);
-				
+
 				tokens = tokenList.toArray(new String[0]);
 				numTokens = tokens.length;
-				
+
 				// Process the tokens
 				if (numTokens == 0)
 				{
 					; // Empty line
 				}
-				else if ( (isHeadless == true)
-				&& (tokens[0].equals("Menu") == true || tokens[0].equals("MenuItem") == true
-				|| tokens[0].equals("SubMenu") || tokens[0].equals("EndSubMenu")) )
+				else if ((isHeadless == true) && (tokens[0].equals("Menu") == true || tokens[0].equals("MenuItem") == true || tokens[0].equals("SubMenu") || tokens[0].equals("EndSubMenu")))
 				{
 					System.out.println("Ignoring:" + tokens[0] + " command. Running in headless environment.");
 					System.out.println("\tTokens: " + tokens);
@@ -256,14 +254,13 @@ public class LogicChunkEngine implements ActionListener
 						{
 							// Try to build the LogicChunk and load it into our MenuMap
 							logicChunk = loadLogicChunkInstance(refRegistry, tokens[2], tokens[1], aLoc);
-							
+
 							// Form the MenuItem or Menu
 							if (logicChunk instanceof SubMenuChunk)
 								aMenuItem = new JMenu(tokens[1]);
 							else
 								aMenuItem = new JMenuItem(tokens[1]);
 							aMenuItem.addActionListener(this);
-
 
 							// Associate the MenuItem with the LogicChunk
 							if (logicChunk != null)
@@ -286,12 +283,12 @@ public class LogicChunkEngine implements ActionListener
 			}
 
 		}
-		catch (FileNotFoundException e)
+		catch(FileNotFoundException e)
 		{
 			System.out.println("File not found: " + aLoc);
 			return;
 		}
-		catch (IOException e)
+		catch(IOException e)
 		{
 			System.out.println("Ioexception occured in: LogicChunkEngine.loadLogicChunks()");
 			return;
@@ -301,8 +298,8 @@ public class LogicChunkEngine implements ActionListener
 	}
 
 	/**
-	 * Attempts to load up the logicChunk with the specified aLabel. If that fails then will attempt to
-	 * construct the LogicChunk using the default constructor.
+	 * Attempts to load up the logicChunk with the specified aLabel. If that fails then will attempt to construct the
+	 * LogicChunk using the default constructor.
 	 */
 	private static LogicChunk loadLogicChunkInstance(Registry aRegistry, String aFullClassPath, String aLabel, String aLoc)
 	{
@@ -326,7 +323,7 @@ public class LogicChunkEngine implements ActionListener
 				System.out.println("\tLocation: " + aLoc + "\n");
 				return null;
 			}
-			
+
 			// Try the 1st preferred constructor
 			rawConstructor = ReflectUtil.getConstructorSafe(rawClass, parmTypes1);
 			if (rawConstructor != null)
@@ -334,32 +331,32 @@ public class LogicChunkEngine implements ActionListener
 				parmValues = new Object[2];
 				parmValues[0] = aRegistry;
 				parmValues[1] = aLabel;
-				
+
 				return (LogicChunk)rawConstructor.newInstance(parmValues);
 			}
-			
+
 			// Try the 2nd preferred constructor
 			rawConstructor = ReflectUtil.getConstructorSafe(rawClass, parmTypes2);
 			if (rawConstructor != null)
 			{
 				parmValues = new Object[1];
 				parmValues[0] = aLabel;
-				
+
 				return (LogicChunk)rawConstructor.newInstance(parmValues);
 			}
-			
+
 			// Just use the default constructor
 			else
 			{
-				return (LogicChunk)rawClass.newInstance();
+				return (LogicChunk)rawClass.getDeclaredConstructor().newInstance();
 			}
 		}
-		catch (ClassNotFoundException aExp)
+		catch(ClassNotFoundException aExp)
 		{
 			System.out.println("Failure: " + aFullClassPath + " not found.");
 			System.out.println("\tLocation: " + aLoc + "\n");
 		}
-		catch (Exception aExp)
+		catch(Exception aExp)
 		{
 			// Unknown Exception
 			aExp.printStackTrace();

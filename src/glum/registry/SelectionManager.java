@@ -1,18 +1,10 @@
 package glum.registry;
 
-import glum.reflect.FunctionRunnable;
-
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import javax.swing.SwingUtilities;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 
 /**
  * Class that support arbitrary item selection. All valid types of selected items must be registered in the Constructor.
@@ -60,7 +52,7 @@ public class SelectionManager
 	/**
 	 * Adds to the list of selected items and notifies all listeners but the specified skipListener
 	 */
-	public <G1 extends Object> void addItem(Class<G1> aClass, G1 aItem, SelectionListener skipListener)
+	public <G1 extends Object> void addItem(Class<G1> aClass, G1 aItem, SelectionListener aSkipListener)
 	{
 		if (registerSet.contains(aClass) == false)
 			throw new RuntimeException("Unregistered selection class: " + aClass);
@@ -71,21 +63,21 @@ public class SelectionManager
 			selectionMap.put(aClass, aItem);
 		}
 
-		notifyListeners(aClass, skipListener);
+		notifyListeners(aClass, aSkipListener);
 	}
 
 	/**
 	 * Add to the list of selected items associated with aClass
 	 */
-	public <G1 extends Object> void addItems(Class<G1> aClass, List<G1> itemList)
+	public <G1 extends Object> void addItems(Class<G1> aClass, List<G1> aItemList)
 	{
-		addItems(aClass, itemList, null);
+		addItems(aClass, aItemList, null);
 	}
 
 	/**
 	 * Adds to the list of selected items and notifies all listeners but the specified skipListener
 	 */
-	public <G1 extends Object> void addItems(Class<G1> aClass, List<G1> itemList, SelectionListener skipListener)
+	public <G1 extends Object> void addItems(Class<G1> aClass, List<G1> aItemList, SelectionListener aSkipListener)
 	{
 		if (registerSet.contains(aClass) == false)
 			throw new RuntimeException("Unregistered selection class: " + aClass);
@@ -93,10 +85,10 @@ public class SelectionManager
 		// Replace the old selections with the new item list
 		synchronized(this)
 		{
-			selectionMap.putAll(aClass, itemList);
+			selectionMap.putAll(aClass, aItemList);
 		}
 
-		notifyListeners(aClass, skipListener);
+		notifyListeners(aClass, aSkipListener);
 	}
 
 	/**
@@ -114,15 +106,15 @@ public class SelectionManager
 	/**
 	 * Removes from the list of selected items associated with aClass
 	 */
-	public <G1 extends Object> void removeItems(Class<G1> aClass, List<G1> itemList)
+	public <G1 extends Object> void removeItems(Class<G1> aClass, List<G1> aItemList)
 	{
-		removeItems(aClass, itemList, null);
+		removeItems(aClass, aItemList, null);
 	}
 
 	/**
 	 * Removes from the list of selected items and notifies all listeners but the specified skipListener
 	 */
-	public <G1 extends Object> void removeItems(Class<G1> aClass, List<G1> itemList, SelectionListener skipListener)
+	public <G1 extends Object> void removeItems(Class<G1> aClass, List<G1> aItemList, SelectionListener skipListener)
 	{
 		if (registerSet.contains(aClass) == false)
 			throw new RuntimeException("Unregistered selection class: " + aClass);
@@ -133,7 +125,7 @@ public class SelectionManager
 			Set<G1> replaceSet;
 
 			replaceSet = new LinkedHashSet<G1>(getSelectedItems(aClass));
-			replaceSet.removeAll(itemList);
+			replaceSet.removeAll(aItemList);
 			selectionMap.replaceValues(aClass, replaceSet);
 		}
 
@@ -143,15 +135,15 @@ public class SelectionManager
 	/**
 	 * Sets in the selected items and notifies all listeners
 	 */
-	public <G1 extends Object> void setItems(Class<G1> aClass, List<G1> itemList)
+	public <G1 extends Object> void setItems(Class<G1> aClass, List<G1> aItemList)
 	{
-		setItems(aClass, itemList, null);
+		setItems(aClass, aItemList, null);
 	}
 
 	/**
 	 * Sets in the selected items and notifies all listeners but the specified skipListener
 	 */
-	public <G1 extends Object> void setItems(Class<G1> aClass, List<G1> itemList, SelectionListener skipListener)
+	public <G1 extends Object> void setItems(Class<G1> aClass, List<G1> aItemList, SelectionListener aSkipListener)
 	{
 		if (registerSet.contains(aClass) == false)
 			throw new RuntimeException("Unregistered selection class: " + aClass);
@@ -159,10 +151,10 @@ public class SelectionManager
 		// Replace the old selections with the new item list
 		synchronized(this)
 		{
-			selectionMap.replaceValues(aClass, itemList);
+			selectionMap.replaceValues(aClass, aItemList);
 		}
 
-		notifyListeners(aClass, skipListener);
+		notifyListeners(aClass, aSkipListener);
 	}
 
 	/**
@@ -177,21 +169,21 @@ public class SelectionManager
 	/**
 	 * Helper method to notify the listeners associated with the specified class.
 	 */
-	private void notifyListeners(Class<?> aClass, SelectionListener skipListener)
+	private void notifyListeners(Class<?> aClass, SelectionListener aSkipListener)
 	{
-		List<SelectionListener> listenerList;
-
 		// Ensure this logic is always executed on the AWT thread (if notifyViaAwtThread == true)
 		if (notifyViaAwtThread == true && SwingUtilities.isEventDispatchThread() == false)
 		{
-			SwingUtilities.invokeLater(new FunctionRunnable(this, "notifyListeners", aClass, skipListener));
+			Runnable tmpRunnable = () -> notifyListeners(aClass, aSkipListener);
+			SwingUtilities.invokeLater(tmpRunnable);
 			return;
 		}
 
+		List<SelectionListener> listenerList;
 		synchronized(this)
 		{
-			listenerList = Lists.newArrayList(listenerMap.get(aClass));
-			listenerList.remove(skipListener);
+			listenerList = new ArrayList<>(listenerMap.get(aClass));
+			listenerList.remove(aSkipListener);
 		}
 
 		for (SelectionListener aListener : listenerList)

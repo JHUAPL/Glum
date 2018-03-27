@@ -1,9 +1,5 @@
 package glum.zio.stream;
 
-import glum.util.WallTimer;
-import glum.zio.ZinStream;
-import glum.zio.util.ZioUtil;
-
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -13,6 +9,10 @@ import java.util.Arrays;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Strings;
+
+import glum.util.WallTimer;
+import glum.zio.ZinStream;
+import glum.zio.util.ZioUtil;
 
 public abstract class BaseZinStream implements ZinStream
 {
@@ -27,10 +27,11 @@ public abstract class BaseZinStream implements ZinStream
 
 	/**
 	 * @param computeCheckSum
-	 *           True if a checksum (md5sum) is desired to be computed as the stream is written
+	 *        True if a checksum (md5sum) is desired to be computed as the stream is written
 	 * @param streamSizeHint
-	 *           A hint which indicates the final size of the source stream. This hint will be used to determine if a direct buffer should be allocated. If the
-	 *           hint size is greater than 25 MB then a direct buffer will be allocated. A value of 0 implies that a direct buffer should not be allocated.
+	 *        A hint which indicates the final size of the source stream. This hint will be used to determine if a direct
+	 *        buffer should be allocated. If the hint size is greater than 25 MB then a direct buffer will be allocated.
+	 *        A value of 0 implies that a direct buffer should not be allocated.
 	 */
 	public BaseZinStream(boolean computeCheckSum, long streamSizeHint) throws IOException
 	{
@@ -58,9 +59,9 @@ public abstract class BaseZinStream implements ZinStream
 
 	/**
 	 * @param aWorkBuffer
-	 *           This ByteBuffer will be used as the workBuffer. No workBuffer will be allocated for this BaseZinStream.
+	 *        This ByteBuffer will be used as the workBuffer. No workBuffer will be allocated for this BaseZinStream.
 	 * @param computeCheckSum
-	 *           True if a checksum (md5sum) is desired to be computed as the stream is written
+	 *        True if a checksum (md5sum) is desired to be computed as the stream is written
 	 */
 	public BaseZinStream(ByteBuffer aWorkBuffer, boolean computeCheckSum) throws IOException
 	{
@@ -348,21 +349,23 @@ public abstract class BaseZinStream implements ZinStream
 	}
 
 	/**
-	 * Helper method to refresh the workBuffer with new data from the stream. This method ensures that workBuffer will always have enough data to support
-	 * reading.
+	 * Helper method to refresh the workBuffer with new data from the stream. This method ensures that workBuffer will
+	 * always have enough data to support reading.
 	 * <P>
 	 * If there is no more data on the stream then this method should throw an IOException
 	 */
 	protected abstract void refreshWorkBuffer() throws IOException;
 
 	/**
-	 * Helper method to release any stream related vars. This method will only be called once, the very first time the method {@link #close()} is called.
+	 * Helper method to release any stream related vars. This method will only be called once, the very first time the
+	 * method {@link #close()} is called.
 	 */
 	protected abstract void releaseStreamVars() throws IOException;
 
 	/**
-	 * Helper method that ensures the digest has been updated with any data that has been "read" thus far. The definition of "read" is any data returned from the
-	 * stream via one of the read methods. The digest shall not be updated with any buffered data - only data that has been read from the stream.
+	 * Helper method that ensures the digest has been updated with any data that has been "read" thus far. The definition
+	 * of "read" is any data returned from the stream via one of the read methods. The digest shall not be updated with
+	 * any buffered data - only data that has been read from the stream.
 	 */
 	protected void updateDigest() throws IOException
 	{

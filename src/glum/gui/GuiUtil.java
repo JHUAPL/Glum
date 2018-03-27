@@ -1,15 +1,15 @@
 package glum.gui;
 
-import glum.gui.icon.IconUtil;
-import glum.reflect.Function;
-import glum.reflect.FunctionRunnable;
-
 import java.awt.*;
 import java.awt.event.ActionListener;
 import java.util.Collection;
+
 import javax.swing.*;
 import javax.swing.border.BevelBorder;
 import javax.swing.event.ChangeListener;
+
+import glum.gui.icon.IconUtil;
+import glum.reflect.Function;
 
 public class GuiUtil
 {
@@ -144,12 +144,12 @@ public class GuiUtil
 	/**
 	 * Creates a JComboBox with the specified settings
 	 */
-	public static JComboBox createJComboBox(ActionListener aListener, Font aFont, Object... itemArr)
+	public static <G1> JComboBox<G1> createJComboBox(ActionListener aListener, Font aFont, Collection<G1> aItemL)
 	{
-		JComboBox tmpBox;
+		JComboBox<G1> tmpBox;
 
-		tmpBox = new JComboBox();
-		for (Object aItem : itemArr)
+		tmpBox = new JComboBox<G1>();
+		for (G1 aItem : aItemL)
 			tmpBox.addItem(aItem);
 
 		if (aFont != null)
@@ -209,7 +209,7 @@ public class GuiUtil
 
 	/**
 	 * Utility method for creating a visual thin divider
-	 * 
+	 * <P>
 	 * Typically added to MigLayout (or like manager) with: add(aComp, "growx,h 4!,span,wrap");
 	 */
 	public static JPanel createDivider()
@@ -652,7 +652,7 @@ public class GuiUtil
 
 	/**
 	 * Utility method that checks to ensure the current thread is running on the ATW thread. If it is NOT then the
-	 * specified function will be posted so that it is called on the AWT thread. If it is running on the AWT thread then
+	 * specified Runnable will be posted so that it is called on the AWT thread. If it is running on the AWT thread then
 	 * nothing will happen and this method will return false.
 	 * <P>
 	 * Typically this utility method is called at the start of a function to ensure it is on the AWT thread, and if not
@@ -665,6 +665,7 @@ public class GuiUtil
 	 * public void actionPerformed(aEvent)
 	 * {
 	 *    // Ensure this method is run on the AWT thread
+	 *    Runnable tmpRunnable = ()-> actionPerformed(aEvent);
 	 *    if (redispatchOnAwtIfNeeded(this, "actionPerformed", aEvent) = true)
 	 *       return;
 	 *       
@@ -672,16 +673,13 @@ public class GuiUtil
 	 * }
 	 * </PRE>
 	 */
-	public static boolean redispatchOnAwtIfNeeded(Object aObj, String methodName, Object... aArgArr)
+	public static boolean redispatchOnAwtIfNeeded(Runnable aRunnable)
 	{
-		FunctionRunnable aFunctionRunnable;
-
 		// Do nothing if this is the AWT thread
 		if (SwingUtilities.isEventDispatchThread() == true)
 			return false;
 
-		aFunctionRunnable = new FunctionRunnable(aObj, methodName, aArgArr);
-		SwingUtilities.invokeLater(aFunctionRunnable);
+		SwingUtilities.invokeLater(aRunnable);
 		return true;
 	}
 

@@ -1,11 +1,13 @@
 package glum.gui.panel.itemList.query;
 
 import java.util.*;
-import javax.swing.*;
-import javax.swing.table.*;
+
+import javax.swing.JLabel;
+import javax.swing.JTextField;
+import javax.swing.table.TableCellEditor;
+import javax.swing.table.TableCellRenderer;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.*;
 
 import glum.unit.UnitProvider;
 
@@ -14,24 +16,24 @@ public class QueryComposer<G1 extends Enum<?>>
 	// State vars
 	protected ArrayList<QueryAttribute> itemList;
 //	protected Map<G1, QueryAttribute> itemMap;
-	
+
 	public QueryComposer()
 	{
-		itemList = Lists.newArrayList();
+		itemList = new ArrayList<>();
 //		itemMap = Maps.newLinkedHashMap();
 	}
-	
+
 	/**
-	* Return the QueryAttribute located at aIndex
-	*/
+	 * Return the QueryAttribute located at aIndex
+	 */
 	public QueryAttribute get(int aIndex)
 	{
 		return itemList.get(aIndex);
 	}
-	
+
 	/**
-	* Return the QueryAttribute associated with aRefKey
-	*/
+	 * Return the QueryAttribute associated with aRefKey
+	 */
 	public QueryAttribute getItem(G1 aRefKey)
 	{
 		for (QueryAttribute aItem : itemList)
@@ -39,49 +41,35 @@ public class QueryComposer<G1 extends Enum<?>>
 			if (aItem.refKey == aRefKey)
 				return aItem;
 		}
-		
+
 		return null;
 	}
-	
+
 	/**
-	* Returns a listing of all the QueryAttributes that were composed
-	*/
+	 * Returns a listing of all the QueryAttributes that were composed
+	 */
 	public Collection<QueryAttribute> getItems()
 	{
-		return Lists.newArrayList(itemList);
+		return new ArrayList<>(itemList);
 	}
-	
+
 	/**
-	* Returns a listing of the items found in the keyArr
-	*/
-	public Collection<QueryAttribute> getItems(G1... keyArr)
+	 * Returns a listing of the items found between sIndex, eIndex (inclusive)
+	 */
+	public Collection<QueryAttribute> getItemsFrom(int sIndex, int eIndex)
 	{
 		List<QueryAttribute> rList;
-		
-		rList = Lists.newArrayListWithCapacity(keyArr.length);
-		for (G1 aEnum : keyArr)
-			rList.add(getItem(aEnum));
-		
+
+		rList = new ArrayList<>((eIndex - sIndex) + 1);
+		for (int c1 = sIndex; c1 <= eIndex; c1++)
+			rList.add(itemList.get(c1));
+
 		return rList;
 	}
 
 	/**
-	* Returns a listing of the items found between sIndex, eIndex (inclusive)
-	*/
-	public Collection<QueryAttribute> getItemsFrom(int sIndex, int eIndex)
-	{
-		List<QueryAttribute> rList;
-		
-		rList = Lists.newArrayListWithCapacity((eIndex - sIndex) + 1);
-		for (int c1 = sIndex; c1 <= eIndex; c1++)
-			rList.add(itemList.get(c1));
-		
-		return rList;
-	}
-	
-	/**
-	* Returns a listing of the items found between sKey, eKey (inclusive)
-	*/
+	 * Returns a listing of the items found between sKey, eKey (inclusive)
+	 */
 	public Collection<QueryAttribute> getItemsFrom(G1 sKey, G1 eKey)
 	{
 		int sIndex, eIndex;
@@ -95,7 +83,7 @@ public class QueryComposer<G1 extends Enum<?>>
 			if (itemList.get(c1).refKey == eKey)
 				eIndex = c1;
 		}
-		
+
 		// Insanity checks
 		if (sIndex == -1)
 			throw new RuntimeException("Failure. Key is not in composer: sKey: " + sKey);
@@ -103,21 +91,21 @@ public class QueryComposer<G1 extends Enum<?>>
 			throw new RuntimeException("Failure. Key is not in composer: eKey: " + eKey);
 		if (sIndex > eIndex)
 			throw new RuntimeException("Failure: eKey: (" + eKey + ") appears before for sKey: (" + sKey + ")");
-		
+
 		return getItemsFrom(sIndex, eIndex);
 	}
-	
+
 	/**
-	* Returns the num of items in the composition
-	*/
+	 * Returns the num of items in the composition
+	 */
 	public int size()
 	{
 		return itemList.size();
 	}
-	
+
 	/**
-	* Method to add a QueryAttribute to this container
-	*/
+	 * Method to add a QueryAttribute to this container
+	 */
 	public QueryAttribute addAttribute(G1 aRefKey, UnitProvider aUnitProvider, String aName, String maxValue)
 	{
 		return addAttribute(aRefKey, aUnitProvider, aName, maxValue, true);
@@ -126,7 +114,7 @@ public class QueryComposer<G1 extends Enum<?>>
 	public QueryAttribute addAttribute(G1 aRefKey, UnitProvider aUnitProvider, String aName, String maxValue, boolean isVisible)
 	{
 		QueryAttribute aAttribute;
-		
+
 		// Insanity check
 		Preconditions.checkNotNull(aUnitProvider);
 
@@ -143,12 +131,12 @@ public class QueryComposer<G1 extends Enum<?>>
 	public QueryAttribute addAttribute(G1 aRefKey, Class<?> aClass, String aName, String maxValue, boolean isVisible)
 	{
 		int maxSize;
-		
+
 		// Compute the maxSize
 		maxSize = Integer.MAX_VALUE;
 		if (maxValue != null)
 			maxSize = computeStringWidth(maxValue) + 15;
-		
+
 		return addAttribute(aRefKey, aClass, aName, maxSize, isVisible);
 	}
 
@@ -161,12 +149,12 @@ public class QueryComposer<G1 extends Enum<?>>
 	{
 		QueryAttribute aAttribute;
 		int defaultSize, minSize, maxSize;
-		
+
 		// Get the defaultSize
 		defaultSize = 15;
 		if (aLabel != null)
 			defaultSize = computeStringWidth(aLabel);
-		
+
 		minSize = 15;
 		maxSize = aMaxSize;
 		if (defaultSize < minSize)
@@ -177,7 +165,7 @@ public class QueryComposer<G1 extends Enum<?>>
 		// Set the defaultSize to be maxSize (unless it is ~infinite)
 		if (maxSize != Integer.MAX_VALUE)
 			defaultSize = maxSize;
-	
+
 		// Form the attribute
 		aAttribute = new QueryAttribute(itemList.size());
 		aAttribute.refKey = aRefKey;
@@ -227,10 +215,10 @@ public class QueryComposer<G1 extends Enum<?>>
 		itemList.add(aAttribute);
 		return aAttribute;
 	}
-	
+
 	/**
-	* Method to set in a custom Editor for the QueryAttribute associated with aRefKey
-	*/
+	 * Method to set in a custom Editor for the QueryAttribute associated with aRefKey
+	 */
 	public void setEditor(G1 aRefKey, TableCellEditor aEditor)
 	{
 		for (QueryAttribute aItem : itemList)
@@ -241,13 +229,13 @@ public class QueryComposer<G1 extends Enum<?>>
 				return;
 			}
 		}
-		
+
 		throw new RuntimeException("No item found with the key:" + aRefKey);
 	}
 
 	/**
-	* Method to set in a custom Renderer for the QueryAttribute associated with aRefKey
-	*/
+	 * Method to set in a custom Renderer for the QueryAttribute associated with aRefKey
+	 */
 	public void setRenderer(G1 aRefKey, TableCellRenderer aRenderer)
 	{
 		for (QueryAttribute aItem : itemList)
@@ -258,20 +246,20 @@ public class QueryComposer<G1 extends Enum<?>>
 				return;
 			}
 		}
-		
+
 		throw new RuntimeException("No item found with the key:" + aRefKey);
 	}
-	
+
 	/**
-	* Utility method to compute the width of a string with the standard font
-	*/
+	 * Utility method to compute the width of a string with the standard font
+	 */
 	protected int computeStringWidth(String aStr)
 	{
 		JLabel tmpL;
-		
+
 		tmpL = new JLabel(aStr);
 		tmpL.setFont((new JTextField()).getFont());
-		
+
 		return tmpL.getPreferredSize().width + 5;
 	}
 

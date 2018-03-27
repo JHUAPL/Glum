@@ -79,7 +79,7 @@ public class ReflectUtil
 		{
 			aConstructor = aClass.getConstructor(parmTypes);
 		}
-		catch (Exception aExp)
+		catch(Exception aExp)
 		{
 			return null;
 		}
@@ -129,14 +129,14 @@ public class ReflectUtil
 			if (retType.isAssignableFrom(aClass) == false)
 				return null;
 
-			aObject = aClass.newInstance();
+			aObject = aClass.getDeclaredConstructor().newInstance();
 			return retType.cast(aObject);
 		}
-		catch (ClassNotFoundException aExp)
+		catch(ClassNotFoundException aExp)
 		{
 			System.out.println("Failure: " + aFullClassPath + " not found.");
 		}
-		catch (Exception aExp)
+		catch(Exception aExp)
 		{
 			// Unknown Exception
 			aExp.printStackTrace();
@@ -175,11 +175,11 @@ public class ReflectUtil
 			aObject = aConstructor.newInstance(parmValues);
 			return retType.cast(aObject);
 		}
-		catch (ClassNotFoundException aExp)
+		catch(ClassNotFoundException aExp)
 		{
 			System.out.println("Failure: " + aFullClassPath + " not found.");
 		}
-		catch (Exception aExp)
+		catch(Exception aExp)
 		{
 			// Unknown Exception
 			aExp.printStackTrace();
@@ -206,14 +206,14 @@ public class ReflectUtil
 			dataPath = aUrl.toURI().toString();
 			dataPath = URLDecoder.decode(dataPath, "UTF-8");
 		}
-		catch (Exception aExp)
+		catch(Exception aExp)
 		{
 			dataPath = aUrl.getPath();
 			try
 			{
 				dataPath = URLDecoder.decode(dataPath, "UTF-8");
 			}
-			catch (Exception aExp2)
+			catch(Exception aExp2)
 			{
 				;
 			}

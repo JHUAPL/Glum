@@ -7,9 +7,8 @@ import glum.zio.ZoutStream;
 import java.io.*;
 import java.net.*;
 import java.nio.channels.Channel;
+import java.util.Base64;
 import java.util.Map;
-
-import javax.xml.bind.DatatypeConverter;
 
 import com.google.common.collect.Maps;
 
@@ -20,18 +19,18 @@ public class IoUtil
 	 */
 	public static URL createURL(String aUrlStr)
 	{
-		URL aURL;
+		URL retURL;
 
 		try
 		{
-			aURL = new URL(aUrlStr);
+			retURL = new URL(aUrlStr);
 		}
-		catch (MalformedURLException e)
+		catch(MalformedURLException e)
 		{
-			aURL = null;
+			retURL = null;
 		}
 
-		return aURL;
+		return retURL;
 	}
 
 	/**
@@ -55,7 +54,7 @@ public class IoUtil
 		{
 			aChannel.close();
 		}
-		catch (Exception aExp)
+		catch(Exception aExp)
 		{
 			aExp.printStackTrace();
 		}
@@ -73,7 +72,7 @@ public class IoUtil
 		{
 			aStream.close();
 		}
-		catch (Exception aExp)
+		catch(Exception aExp)
 		{
 			aExp.printStackTrace();
 		}
@@ -91,7 +90,7 @@ public class IoUtil
 		{
 			aStream.close();
 		}
-		catch (Exception aExp)
+		catch(Exception aExp)
 		{
 			aExp.printStackTrace();
 		}
@@ -109,7 +108,7 @@ public class IoUtil
 		{
 			aReader.close();
 		}
-		catch (Exception aExp)
+		catch(Exception aExp)
 		{
 			aExp.printStackTrace();
 		}
@@ -127,7 +126,7 @@ public class IoUtil
 		{
 			aWriter.close();
 		}
-		catch (Exception aExp)
+		catch(Exception aExp)
 		{
 			aExp.printStackTrace();
 		}
@@ -146,7 +145,7 @@ public class IoUtil
 		{
 			aStream.close();
 		}
-		catch (Exception aExp)
+		catch(Exception aExp)
 		{
 			aExp.printStackTrace();
 		}
@@ -164,7 +163,7 @@ public class IoUtil
 		{
 			aStream.close();
 		}
-		catch (Exception aExp)
+		catch(Exception aExp)
 		{
 			aExp.printStackTrace();
 		}
@@ -176,26 +175,20 @@ public class IoUtil
 	 */
 	public static boolean copyUrlToFile(Task aTask, URL aUrl, File aFile, Map<String, String> aPropertyMap)
 	{
-		URLConnection aConnection;
-		InputStream inStream;
-		OutputStream outStream;
-		byte[] byteArr;
-		int numBytes;
-		
 		// Ensure we have a valid aTask
 		if (aTask == null)
 			aTask = new ConsoleTask();
 
 		// Allocate space for the byte buffer
-		byteArr = new byte[10000];
+		byte[] byteArr = new byte[10000];
 
 		// Perform the actual copying
-		inStream = null;
-		outStream = null;
+		InputStream inStream = null;
+		OutputStream outStream = null;
 		try
 		{
 			// Open the src stream (with a 30 sec connect timeout)
-			aConnection = aUrl.openConnection();
+			URLConnection aConnection = aUrl.openConnection();
 			aConnection.setConnectTimeout(30 * 1000);
 			aConnection.setReadTimeout(90 * 1000);
 
@@ -213,13 +206,13 @@ public class IoUtil
 			outStream = new FileOutputStream(aFile);
 
 			// Copy the bytes from the instream to the outstream
-			numBytes = 0;
+			int numBytes = 0;
 			while (numBytes != -1)
 			{
 				numBytes = inStream.read(byteArr);
 				if (numBytes > 0)
 					outStream.write(byteArr, 0, numBytes);
-				
+
 				// Bail if aTask is aborted
 				if (aTask.isActive() == false)
 				{
@@ -228,7 +221,7 @@ public class IoUtil
 				}
 			}
 		}
-		catch (Exception aExp)
+		catch(Exception aExp)
 		{
 			aTask.infoAppendln("Exception:" + aExp);
 			aTask.infoAppendln("   URL:" + aUrl);
@@ -268,13 +261,10 @@ public class IoUtil
 	 */
 	public static boolean copyUrlToFile(Task aTask, URL aUrl, File aFile, String aUsername, String aPassword)
 	{
-		Map<String, String> plainMap;
-		String authStr;
+		String authStr = aUsername + ":" + aPassword;
+		authStr = Base64.getEncoder().encodeToString(authStr.getBytes());
 
-		authStr = aUsername + ":" + aPassword;
-		authStr = DatatypeConverter.printBase64Binary(authStr.getBytes());
-
-		plainMap = Maps.newHashMap();
+		Map<String, String> plainMap = Maps.newHashMap();
 		plainMap.put("Authorization", "Basic " + authStr);
 
 		return copyUrlToFile(aTask, aUrl, aFile, plainMap);
@@ -294,20 +284,19 @@ public class IoUtil
 	 */
 	public static boolean copyFileToFile(File aFile1, File aFile2)
 	{
-		URL aUrl;
-
+		URL tmpUrl;
 		try
 		{
-			aUrl = aFile1.toURI().toURL();
+			tmpUrl = aFile1.toURI().toURL();
 		}
-		catch (Exception aExp)
+		catch(Exception aExp)
 		{
 			System.out.println("Exception:" + aExp);
 			aExp.printStackTrace();
 			return false;
 		}
 
-		return copyUrlToFile(aUrl, aFile2);
+		return copyUrlToFile(tmpUrl, aFile2);
 	}
 
 	/**
@@ -344,16 +333,13 @@ public class IoUtil
 	 */
 	public static String readString(DataInputStream aStream) throws IOException
 	{
-		byte[] data;
-		int size;
-
-		size = aStream.readShort() & 0x00FFFF;
+		int size = aStream.readShort() & 0x00FFFF;
 		if (size == 0x00FFFF)
 			return null;
 		if (size == 0)
 			return "";
 
-		data = new byte[size];
+		byte[] data = new byte[size];
 		aStream.readFully(data);
 		return new String(data, "UTF-8");
 	}
@@ -363,9 +349,6 @@ public class IoUtil
 	 */
 	public static void writeString(DataOutputStream aStream, String aStr) throws IOException
 	{
-		byte[] data;
-		int size;
-
 		// Null strings are handled in special fashion
 		if (aStr == null)
 		{
@@ -380,8 +363,8 @@ public class IoUtil
 			return;
 		}
 
-		data = aStr.getBytes("UTF-8");
-		size = data.length;
+		byte[] data = aStr.getBytes("UTF-8");
+		int size = data.length;
 
 		// Ensure the string size is less than 0x00FFFF
 		if (size >= 0x00FFFF)
@@ -397,18 +380,17 @@ public class IoUtil
 	 */
 	public static short sizeOnDisk(String aStr)
 	{
-		byte[] data;
-		int size;
-
 		if (aStr == null || aStr.equals("") == true)
 			return 2;
 
+		byte[] data;
+		int size;
 		try
 		{
 			data = aStr.getBytes("UTF-8");
 			size = data.length;
 		}
-		catch (Exception aExp)
+		catch(Exception aExp)
 		{
 			throw new RuntimeException("UTF-8 Transform error.", aExp);
 		}
