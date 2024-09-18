@@ -1,22 +1,45 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.gui.panel.itemList.query;
 
 import java.io.IOException;
+import java.util.Comparator;
 
 import javax.swing.JLabel;
 import javax.swing.table.*;
 
+import glum.gui.table.SortDir;
 import glum.unit.EmptyUnitProvider;
 import glum.unit.UnitProvider;
 import glum.zio.*;
 
-public class QueryAttribute implements ZioObj
+/**
+ * Class that provides for the definition of attributes associated with a specific data field.
+ *
+ * @author lopeznr1
+ */
+public class QueryAttribute<G1 extends Enum<?>> implements ZioObj
 {
-	// State vars
+	// Attributes
+	public final G1 refKey;
 	public final int modelIndex;
-	public Enum<?> refKey;
-	public Class<?> refClass;
+	public final Class<?> refClass;
+
+	// State vars
+	public Comparator<?> refComparator;
 	public UnitProvider refUnitProvider;
-	
+
 	// Config vars
 	public String label;
 	public boolean isVisible;
@@ -24,38 +47,52 @@ public class QueryAttribute implements ZioObj
 	public int defaultSize;
 	public int minSize;
 	public int maxSize;
-	public int sortDir;
+	public SortDir sortDir;
 
 	// Helper vars
 	public TableColumn assocTableColumn;
 	public TableCellRenderer renderer;
 	public TableCellEditor editor;
 
-	public QueryAttribute(int aModelIndex)
+	/**
+	 * Standard Constructor.
+	 *
+	 * @param aRefKey
+	 * @param aRefClass
+	 * @param aModelIndex
+	 */
+	public QueryAttribute(G1 aRefKey, Class<?> aRefClass, int aModelIndex)
 	{
+		refKey = aRefKey;
+		refClass = aRefClass;
 		modelIndex = aModelIndex;
-		refKey = null;
-		refClass = String.class;
-		label = "";
 
+		refComparator = null;
+		refUnitProvider = new EmptyUnitProvider();
+
+		label = "";
 		isVisible = true;
 		alignment = JLabel.LEFT;
 		defaultSize = 100;
 		maxSize = -1;
 		minSize = -1;
-		sortDir = 0;
-		refUnitProvider = new EmptyUnitProvider();
+		sortDir = SortDir.NotSorted;
 
 		assocTableColumn = null;
 		renderer = null;
 		editor = null;
 	}
-	
-	public QueryAttribute(QueryAttribute aAttribute)
+
+	/**
+	 * Copy Constructor.
+	 *
+	 * @param aAttribute
+	 */
+	public QueryAttribute(QueryAttribute<G1> aAttribute)
 	{
 		// Synchronize the attribute before copying the configuration
 		aAttribute.synchronizeAttribute();
-		
+
 		modelIndex = aAttribute.modelIndex;
 		refKey = aAttribute.refKey;
 		refClass = aAttribute.refClass;
@@ -70,17 +107,16 @@ public class QueryAttribute implements ZioObj
 		refUnitProvider = aAttribute.refUnitProvider;
 
 		assocTableColumn = null;
-		renderer = null; //aAttribute.renderer;
-		editor = null; //aAttribute.editor;
+		renderer = null; // aAttribute.renderer;
+		editor = null; // aAttribute.editor;
 	}
-	
+
 	/**
 	 * Sets this QueryAttribute to match aAttribute.
-	 *<P> 
-	 * Currently only the following config vars are matched:
-	 * label, isVisible, alignment, defaultSize, sortDir
+	 * <p>
+	 * Currently only the following config vars are matched: label, isVisible, alignment, defaultSize, sortDir
 	 */
-	public void setConfig(QueryAttribute aAttribute)
+	public void setConfig(QueryAttribute<G1> aAttribute)
 	{
 		label = aAttribute.label;
 		isVisible = aAttribute.isVisible;
@@ -96,7 +132,7 @@ public class QueryAttribute implements ZioObj
 	{
 		if (assocTableColumn == null)
 			return;
-		
+
 		defaultSize = assocTableColumn.getWidth();
 //		sortDir = assocTableColumn.
 	}
@@ -109,7 +145,7 @@ public class QueryAttribute implements ZioObj
 		if (assocTableColumn == null)
 			return;
 
-System.out.println("Are we ready for this ???");		
+		System.out.println("Are we ready for this ???");
 		assocTableColumn.setWidth(defaultSize);
 //		sortDir = assocTableColumn.
 	}
@@ -118,14 +154,12 @@ System.out.println("Are we ready for this ???");
 	public void zioRead(ZinStream aStream) throws IOException
 	{
 		aStream.readVersion(0);
-		
+
 		label = aStream.readString();
 		isVisible = aStream.readBool();
 		alignment = aStream.readInt();
 		defaultSize = aStream.readInt();
-		minSize = aStream.readInt();
-		maxSize = aStream.readInt();
-		sortDir = aStream.readInt();
+		sortDir = aStream.readEnum(SortDir.values());
 	}
 
 	@Override
@@ -133,16 +167,14 @@ System.out.println("Are we ready for this ???");
 	{
 		// Synchronize the attribute before serialization
 		synchronizeAttribute();
-		
+
 		aStream.writeVersion(0);
-		
+
 		aStream.writeString(label);
 		aStream.writeBool(isVisible);
 		aStream.writeInt(alignment);
 		aStream.writeInt(defaultSize);
-		aStream.writeInt(minSize);
-		aStream.writeInt(maxSize);
-		aStream.writeInt(sortDir);
+		aStream.writeEnum(sortDir);
 	}
-	
+
 }

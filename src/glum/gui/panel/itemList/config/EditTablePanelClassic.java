@@ -1,44 +1,74 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.gui.panel.itemList.config;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.util.*;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.HashMap;
+import java.util.Map;
+
 import javax.swing.*;
 import javax.swing.border.*;
 
-import glum.gui.*;
-import glum.gui.action.*;
+import glum.gui.FocusUtil;
+import glum.gui.GuiUtil;
+import glum.gui.action.ClickAction;
 import glum.gui.component.GComboBox;
-import glum.gui.panel.*;
-import glum.gui.panel.itemList.query.*;
-
+import glum.gui.panel.GlassPanel;
+import glum.gui.panel.itemList.TableColumnHandler;
+import glum.gui.panel.itemList.query.QueryAttribute;
+import glum.gui.panel.itemList.query.QueryItemHandler;
 import net.miginfocom.swing.MigLayout;
 
-public class EditTablePanelClassic extends GlassPanel implements ActionListener
+/**
+ * UI component that allows for the configuration of ItemListPanels that utilize the {@link QueryAttribute} and
+ * {@link QueryItemHandler} interfaces.
+ * <p>
+ * New code should make use of {@link EditTablePanel} rather than {@link EditTablePanelClassic}.
+ *
+ * @author lopeznr1
+ */
+public class EditTablePanelClassic<G2 extends Enum<?>> extends GlassPanel implements ActionListener
 {
+	// Attributes
+	private final TableColumnHandler<G2> refTableColumnHandler;
+
 	// GUI vars
-	protected JLabel titleL;
-	protected JRadioButton profileRB, customRB;
-	protected GComboBox<ProfileConfig> profileBox;
-	protected JButton closeB;
+	private JLabel titleL;
+	private JRadioButton profileRB, customRB;
+	private GComboBox<ProfileConfig<G2>> profileBox;
+	private JButton closeB;
 
 	// State vars
-	protected QueryItemHandler<?> refItemHandler;
-	protected Map<JCheckBox, QueryAttribute> actionMap;
+	private Map<JCheckBox, QueryAttribute<G2>> actionMap;
 
-	public EditTablePanelClassic(Component aParent, QueryItemHandler<?> aItemHandler)
+	/** Standard Constructor */
+	public EditTablePanelClassic(Component aParent, TableColumnHandler<G2> aTableColumnHandler)
 	{
 		super(aParent);
 
 		// State vars
-		refItemHandler = aItemHandler;
-		actionMap = new HashMap<JCheckBox, QueryAttribute>();
+		refTableColumnHandler = aTableColumnHandler;
+		actionMap = new HashMap<>();
 
 		// Build the actual GUI
 		buildGuiArea();
 		setPreferredSize(new Dimension(200, getPreferredSize().height));
 		updateGui();
-		
+
 		// Set up some keyboard shortcuts
 		FocusUtil.addAncestorKeyBinding(this, "ESCAPE", new ClickAction(closeB));
 	}
@@ -46,10 +76,7 @@ public class EditTablePanelClassic extends GlassPanel implements ActionListener
 	@Override
 	public void actionPerformed(ActionEvent e)
 	{
-		Object source;
-
-		source = e.getSource();
-
+		var source = e.getSource();
 		if (source == closeB)
 		{
 			setVisible(false);
@@ -57,35 +84,29 @@ public class EditTablePanelClassic extends GlassPanel implements ActionListener
 		}
 		else if (source == profileBox || source == profileRB)
 		{
-			ProfileConfig aConfig;
-			QueryAttribute aAttribute;
-			
-			aConfig = profileBox.getChosenItem();
-			refItemHandler.setOrderAndConfig(aConfig.getItems());
-			refItemHandler.rebuildTableColumns();
-			
+			var tmpConfig = profileBox.getChosenItem();
+			refTableColumnHandler.setOrderAndConfig(tmpConfig.getItems());
+			refTableColumnHandler.rebuildTableColumns();
+
 			for (JCheckBox itemCB : actionMap.keySet())
 			{
-				aAttribute = actionMap.get(itemCB);
-				itemCB.setSelected(aAttribute.isVisible);
+				var tmpAttribute = actionMap.get(itemCB);
+				itemCB.setSelected(tmpAttribute.isVisible);
 			}
 		}
 		else if (source instanceof JCheckBox)
 		{
-			QueryAttribute aAttribute;
-			JCheckBox tmpCB;
-			
-			tmpCB = (JCheckBox)source;
-			aAttribute = actionMap.get(tmpCB);
-			aAttribute.isVisible = tmpCB.isSelected();
-			
-			refItemHandler.rebuildTableColumns();
+			var tmpCB = (JCheckBox) source;
+			var tmpAttribute = actionMap.get(tmpCB);
+			tmpAttribute.isVisible = tmpCB.isSelected();
+
+			refTableColumnHandler.rebuildTableColumns();
 		}
 
 		updateGui();
 	}
 
-	public void addConfig(ProfileConfig aConfig)
+	public void addConfig(ProfileConfig<G2> aConfig)
 	{
 		profileBox.addItem(aConfig);
 	}
@@ -95,9 +116,6 @@ public class EditTablePanelClassic extends GlassPanel implements ActionListener
 	 */
 	protected void buildGuiArea()
 	{
-		JPanel tmpPanel;
-		Border border1, border2;
-
 		// Form the grid bag constraints
 		setLayout(new MigLayout("", "[left][grow]", "[]"));
 
@@ -110,7 +128,7 @@ public class EditTablePanelClassic extends GlassPanel implements ActionListener
 		profileRB.addActionListener(this);
 		add(profileRB, "span 1");
 
-		profileBox = new GComboBox<ProfileConfig>();
+		profileBox = new GComboBox<>();
 		profileBox.addActionListener(this);
 		add(profileBox, "growx,span 1,wrap");
 
@@ -119,9 +137,9 @@ public class EditTablePanelClassic extends GlassPanel implements ActionListener
 		customRB.addActionListener(this);
 		add(customRB, "span 1,wrap");
 
-		tmpPanel = buildQueryItemPanel();
-		border1 = new EmptyBorder(0, 10, 0, 10);
-		border2 = new BevelBorder(BevelBorder.RAISED);
+		var tmpPanel = buildQueryItemPanel();
+		var border1 = new EmptyBorder(0, 10, 0, 10);
+		var border2 = new BevelBorder(BevelBorder.RAISED);
 		tmpPanel.setBorder(new CompoundBorder(border2, border1));
 		tmpPanel.setEnabled(false);
 		add(tmpPanel, "growx,span 2,wrap");
@@ -130,45 +148,36 @@ public class EditTablePanelClassic extends GlassPanel implements ActionListener
 		GuiUtil.linkRadioButtons(profileRB, customRB);
 
 		// Build the default profile box
-		ProfileConfig aConfig;
-		aConfig = new ProfileConfig(AddProfilePanel.DEFAULT_NAME, refItemHandler.getSortedAttributes());
-		addConfig(aConfig);
+		var tmpConfig = new ProfileConfig<>(ProfileConfig.DEFAULT_NAME, refTableColumnHandler.getOrderedAttributes());
+		addConfig(tmpConfig);
 
 		// Action area
 		closeB = GuiUtil.createJButton("Close", this);
-		add(closeB, "align right,span 2");
-
-		setBorder(new BevelBorder(BevelBorder.RAISED));
+		add(closeB, "ax right,span,split");
 	}
 
 	protected JPanel buildQueryItemPanel()
 	{
-		Collection<QueryAttribute> attrList;
-		JPanel aPanel;
-		JCheckBox tmpCB;
+		var retPanel = new JPanel();
+		retPanel.setLayout(new BoxLayout(retPanel, BoxLayout.Y_AXIS));
 
-		aPanel = new JPanel();
-		aPanel.setLayout(new BoxLayout(aPanel, BoxLayout.Y_AXIS));
-
-		attrList = refItemHandler.getSortedAttributes();
-		for (QueryAttribute aAttr : attrList)
+		var tmpAttrL = refTableColumnHandler.getOrderedAttributes();
+		for (QueryAttribute<G2> aAttr : tmpAttrL)
 		{
-			tmpCB = new JCheckBox(aAttr.label, aAttr.isVisible);
+			var tmpCB = new JCheckBox(aAttr.label, aAttr.isVisible);
 			tmpCB.addActionListener(this);
-			aPanel.add(tmpCB);
+			retPanel.add(tmpCB);
 
 			actionMap.put(tmpCB, aAttr);
 		}
 
-		return aPanel;
+		return retPanel;
 	}
 
 	protected void updateGui()
 	{
-		boolean isEnabled;
-
 		// Update the profile area
-		isEnabled = profileRB.isSelected();
+		var isEnabled = profileRB.isSelected();
 		profileBox.setEnabled(isEnabled);
 
 		// Update the custom area

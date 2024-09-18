@@ -1,12 +1,35 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.task;
 
+/**
+ * Task designed to be a partial of a larger {@link Task}. Utilization of this task is focused on the smaller partial
+ * task at hand.
+ *
+ * @author lopeznr1
+ */
 public class PartialTask implements Task
 {
-	protected Task refTask;
-	protected double progressOffset;
-	protected double progressTotalFragment;
-	protected double internalProgress;
+	// Ref vars
+	private final Task refTask;
 
+	// State vars
+	private double progressOffset;
+	private double progressTotalFragment;
+	private double internalProgress;
+
+	/** Standard Constructor */
 	public PartialTask(Task aRefTask, double aProgressOffset, double aProgressTotalFragment)
 	{
 		refTask = aRefTask;
@@ -22,27 +45,39 @@ public class PartialTask implements Task
 	}
 
 	@Override
-	public void infoAppend(String aMsg)
-	{
-		refTask.infoAppend(aMsg);
-	}
-
-	@Override
-	public void infoAppendln(String aMsg)
-	{
-		refTask.infoAppendln(aMsg);
-	}
-
-	@Override
-	public void infoUpdate(String aMsg)
-	{
-		refTask.infoUpdate(aMsg);
-	}
-
-	@Override
 	public double getProgress()
 	{
 		return progressOffset + (progressTotalFragment * internalProgress);
+	}
+
+	@Override
+	public boolean isAborted()
+	{
+		return refTask.isAborted();
+	}
+
+	@Override
+	public boolean isActive()
+	{
+		return refTask.isActive();
+	}
+
+	@Override
+	public void logReg(String aFmtMsg, Object... aObjArr)
+	{
+		refTask.logReg(aFmtMsg, aObjArr);
+	}
+
+	@Override
+	public void logRegln(String aFmtMsg, Object... aObjArr)
+	{
+		refTask.logRegln(aFmtMsg, aObjArr);
+	}
+
+	@Override
+	public void logRegUpdate(String aFmtMsg, Object... aObjArr)
+	{
+		refTask.logRegUpdate(aFmtMsg, aObjArr);
 	}
 
 	@Override
@@ -61,9 +96,9 @@ public class PartialTask implements Task
 	}
 
 	@Override
-	public void setProgress(int currVal, int maxVal)
+	public void setProgress(int aCurrVal, int aMaxVal)
 	{
-		setProgress((currVal + 0.0) / maxVal);
+		setProgress((aCurrVal + 0.0) / aMaxVal);
 	}
 
 	@Override
@@ -79,21 +114,15 @@ public class PartialTask implements Task
 	}
 
 	@Override
-	public void setTabSize(int numSpaces)
+	public void setTabSize(int aNumSpaces)
 	{
-		refTask.setTabSize(numSpaces);
+		refTask.setTabSize(aNumSpaces);
 	}
 
 	@Override
 	public void setTitle(String aTitle)
 	{
 		refTask.setTitle(aTitle);
-	}
-
-	@Override
-	public boolean isActive()
-	{
-		return refTask.isActive();
 	}
 
 }

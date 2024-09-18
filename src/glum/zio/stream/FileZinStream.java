@@ -1,26 +1,45 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.zio.stream;
 
-import java.io.EOFException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.channels.FileChannel;
 
+import glum.zio.ZinStream;
+
+/**
+ * Implementation of {@link ZinStream} backed by a file.
+ *
+ * @author lopeznr1
+ */
 public class FileZinStream extends BaseZinStream
 {
 	// Stream vars
 	private FileChannel fileCh;
 	private byte[] staleArr;
 
-	public FileZinStream(File aFile, boolean computeCheckSum) throws IOException
+	/** Standard Constructor */
+	public FileZinStream(File aFile, boolean aComputeCheckSum) throws IOException
 	{
-		super(computeCheckSum, aFile.length());
+		super(aComputeCheckSum, aFile.length());
 
 		// Set up the stream vars
 		fileCh = new FileInputStream(aFile).getChannel();
 		staleArr = new byte[256];
 	}
 
+	/** Simplified Constructor */
 	public FileZinStream(File aFile) throws IOException
 	{
 		this(aFile, false);
@@ -48,13 +67,11 @@ public class FileZinStream extends BaseZinStream
 	@Override
 	protected void refreshWorkBuffer() throws IOException
 	{
-		int numReadBytes, numStaleBytes;
-
 		// Ensure the digest has been updated before refreshing the buffer
 		updateDigest();
 
 		// Copies the remaining data from workBuffer to a byte (stale) array
-		numStaleBytes = workBuffer.remaining();
+		var numStaleBytes = workBuffer.remaining();
 		if (numStaleBytes > 0)
 			workBuffer.get(staleArr, 0, numStaleBytes);
 
@@ -64,7 +81,7 @@ public class FileZinStream extends BaseZinStream
 			workBuffer.put(staleArr, 0, numStaleBytes);
 
 		// Fill the remaining workBuffer with data from the "stream"
-		numReadBytes = fileCh.read(workBuffer);
+		var numReadBytes = fileCh.read(workBuffer);
 		if (numReadBytes == 0)
 			System.out.println("Failed to read any buffer bytes!!! Bytes formerly read: " + numReadBytes);
 		if (numReadBytes == -1)

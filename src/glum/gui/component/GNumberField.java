@@ -1,56 +1,86 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.gui.component;
 
 import java.awt.Color;
 import java.awt.event.ActionListener;
-import javax.swing.*;
-import javax.swing.event.*;
-import javax.swing.text.*;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.text.Document;
+
+import com.google.common.collect.Range;
 
 import glum.gui.document.NumberDocument;
-import glum.unit.ConstUnitProvider;
-import glum.unit.NumberUnit;
-import glum.unit.Unit;
-import glum.unit.UnitListener;
-import glum.unit.UnitProvider;
+import glum.unit.*;
 
-public class GNumberField extends JTextField implements DocumentListener, UnitListener
+/**
+ * User interface input used to capture an individual numerical input (type: double).
+ * <p>
+ * Unlike JTextField, users of this class should not use getText() / setText() but rather getValue() / setValue()
+ * methods. Also it should not be necessary to register DocumentListeners - rather an ActionListener should be
+ * sufficient.
+ * <p>
+ * This class provides two modes of converting model values to textual input:
+ * <ul>
+ * <li>{@link NumberFormat} mechanism
+ * <li>{@link UnitProvider} mechanism
+ * </ul>
+ *
+ * @author lopeznr1
+ */
+public class GNumberField extends GBaseTextField implements DocumentListener, UnitListener
 {
+	// Attributes
+	private final NumberFormat refFormat;
+	private final UnitProvider refUnitProvider;
+
 	// State vars
-	protected UnitProvider refUnitProvider;
-	protected double currValue, minValue, maxValue;
-	protected boolean isMutating;
+	private Range<Double> minMaxRange;
+	private double currValue;
+	private boolean isMutating;
 
 	// Gui vars
-	protected Color failColor, passColor;
-	protected NumberDocument myDocument;
+	private Color colorFail, colorPass;
+	private NumberDocument myDocument;
 
 	/**
-	 * Constructor
-	 * 
+	 * Standard Constructor
+	 *
 	 * @param aListener
-	 *           : Default ActionListener
+	 *        An ActionListener that will be notified when ever the user makes any input changes.
 	 * @param aUnit
-	 *           : Object used to format programatic entered values. Note aUnitProvider will also be used to determine if
-	 *           Floating or only Integral input is allowed.
-	 * @param inputType
-	 *           : Type of input to accept (Integer, Double, etc...)
-	 * @param aMinVal
-	 *           : Minimum value to accept
-	 * @param aMaxVal
-	 *           : Maximum value to accept
+	 *        Object used to format programmatic entered values. Note aUnitProvider will also be used to determine if
+	 *        Floating or only Integral input is allowed.
+	 * @param aMinMaxRange
+	 *        The range of values to accept.
 	 */
-	public GNumberField(ActionListener aListener, UnitProvider aUnitProvider, double aMinVal, double aMaxVal)
+	public GNumberField(ActionListener aListener, UnitProvider aUnitProvider, Range<Double> aMinMaxRange)
 	{
 		super("", 0);
 
+		refFormat = null;
 		refUnitProvider = aUnitProvider;
-		currValue = 0;
-		minValue = aMinVal;
-		maxValue = aMaxVal;
+
+		minMaxRange = aMinMaxRange;
+		currValue = Double.NaN;
 		isMutating = false;
 
-		failColor = Color.RED.darker();
-		passColor = getForeground();
+		colorFail = Color.RED.darker();
+		colorPass = getForeground();
 
 		// Register the ActionListener
 		if (aListener != null)
@@ -69,31 +99,82 @@ public class GNumberField extends JTextField implements DocumentListener, UnitLi
 		installUnit();
 	}
 
-	public GNumberField(ActionListener aListener, Unit aUnit, double aMinVal, double aMaxVal)
+	/**
+	 * Standard Constructor
+	 *
+	 * @param aListener
+	 *        An ActionListener that will be notified when ever the user makes any input changes.
+	 * @param aFormat
+	 *        NumberFormat used to transform the numerical value to a string.
+	 * @param aMinMaxRange
+	 *        The range of values to accept.
+	 */
+	public GNumberField(ActionListener aListener, NumberFormat aFormat, Range<Double> aMinMaxRange)
 	{
-		this(aListener, new ConstUnitProvider(aUnit), aMinVal, aMaxVal);
+		super("", 0);
+
+		refFormat = aFormat;
+		refUnitProvider = null;
+
+		minMaxRange = aMinMaxRange;
+		currValue = Double.NaN;
+		isMutating = false;
+
+		colorFail = Color.RED.darker();
+		colorPass = getForeground();
+
+		// Form the appropriate Document and initialize
+		myDocument = new NumberDocument(this, false);
+		super.setDocument(myDocument);
+
+		// Register the ActionListener
+		if (aListener != null)
+			addActionListener(aListener);
+
+		// Register for events of interest
+		myDocument.addDocumentListener(this);
+
+		// Force the UI component to reflect the currValue. Note this is done last since this method
+		// assumes the GNumberField is already registered with myDocument.
+		forceTF(currValue);
 	}
 
 	/**
-	 * Returns whether the current input is valid
+	 * Simplified Constructor
+	 *
+	 * @param aListener
+	 *        An ActionListener that will be notified when ever the user makes any input changes.
+	 * @param aUnit
+	 * @param aMinMaxRange
+	 *        The range of values to accept.
 	 */
-	public boolean isValidInput()
+	public GNumberField(ActionListener aListener, Unit aUnit, Range<Double> aMinMaxRange)
 	{
-		Unit aUnit;
-		double modelVal;
+		this(aListener, new ConstUnitProvider(aUnit), aMinMaxRange);
+	}
 
-		// Ensure we have valid input
-		aUnit = refUnitProvider.getUnit();
+	/**
+	 * Simplified Constructor
+	 *
+	 * @param aListener
+	 *        An ActionListener that will be notified when ever the user makes any input changes.
+	 * @param aFormat
+	 *        NumberFormat used to transform the numerical value to a string.
+	 */
+	public GNumberField(ActionListener aListener, NumberFormat aFormat)
+	{
+		this(aListener, aFormat, Range.closed(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY));
+	}
 
-		modelVal = aUnit.parseString(this.getText(), Double.NaN);
-		if (Double.isNaN(modelVal) == true)
-			return false;
-
-		// Ensure the value is within range
-		if (modelVal < minValue || modelVal > maxValue)
-			return false;
-
-		return true;
+	/**
+	 * Simplified Constructor
+	 *
+	 * @param aListener
+	 *        An ActionListener that will be notified when ever the user makes any input changes.
+	 */
+	public GNumberField(ActionListener aListener)
+	{
+		this(aListener, new DecimalFormat("#.###"), Range.closed(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY));
 	}
 
 	/**
@@ -111,6 +192,30 @@ public class GNumberField extends JTextField implements DocumentListener, UnitLi
 	}
 
 	/**
+	 * Returns the {@link Color} used to change foreground text whenever invalid input is entered.
+	 */
+	public Color getColorFail()
+	{
+		return colorFail;
+	}
+
+	/**
+	 * Returns the {@link Color} used to change foreground text whenever valid input is entered.
+	 */
+	public Color getColorPass()
+	{
+		return colorPass;
+	}
+
+	/**
+	 * Returns the range of valid values.
+	 */
+	public Range<Double> getMinMaxRange()
+	{
+		return minMaxRange;
+	}
+
+	/**
 	 * Returns the currently stored model value
 	 */
 	public double getValue()
@@ -120,20 +225,65 @@ public class GNumberField extends JTextField implements DocumentListener, UnitLi
 
 	/**
 	 * Returns the currently stored model value as an integer. If the modelValue is NaN, then errorVal will be returned.
-	 * The values MaxInt, MinInt are returned for Infinity.
+	 * The values MAX_VALUE will be returned for +Infinity. The value MIN_VALUE will be returned for -Infinity.
 	 */
-	public int getValueAsInt(int errorVal)
+	public long getValueAsLong(long aErrorVal)
 	{
 		if (Double.isNaN(currValue) == true)
-			return errorVal;
+			return aErrorVal;
 
-		return (int)currValue;
+		return (long) currValue;
+	}
+
+	/**
+	 * Returns the currently stored model value as an integer. If the modelValue is NaN, then errorVal will be returned.
+	 * The values MAX_VALUE will be returned for +Infinity. The value MIN_VALUE will be returned for -Infinity.
+	 */
+	public int getValueAsInt(int aErrorVal)
+	{
+		if (Double.isNaN(currValue) == true)
+			return aErrorVal;
+
+		return (int) currValue;
+	}
+
+	/**
+	 * Returns whether the current input is valid
+	 */
+	public boolean isValidInput()
+	{
+		// Ensure we have valid input
+		double modelVal = transformToModel(this.getText());
+		if (Double.isNaN(modelVal) == true)
+			return false;
+
+		// Ensure the value is within range
+		if (minMaxRange.contains(modelVal) == false)
+			return false;
+
+		return true;
+	}
+
+	/**
+	 * Sets the {@link Color} used to indicate invalid input is entered.
+	 */
+	public void setColorFail(Color aColor)
+	{
+		colorFail = aColor;
+	}
+
+	/**
+	 * Sets the {@link Color} used to indicate valid input is entered.
+	 */
+	public void setColorPass(Color aColor)
+	{
+		colorPass = aColor;
 	}
 
 	/**
 	 * Takes in a model value and will display it with respect to the active unit. This method will not trigger an
 	 * ActionEvent.
-	 * <P>
+	 * <p>
 	 * Note this method will do nothing if the UI is being "mutated" when this method is called.
 	 */
 	public void setValue(final double aValue)
@@ -141,6 +291,16 @@ public class GNumberField extends JTextField implements DocumentListener, UnitLi
 		// Bail if we are being mutated. The alternative is to throw an exception like:
 		// throw new IllegalStateException("Attempt to mutate in notification");
 		if (isMutating == true)
+			return;
+
+		// Bail if the value has not changed. We do this so that user
+		// entered input will not change if the model value has not changed.
+		double ulp = Math.ulp(aValue);
+		boolean ignoreInput = true;
+		ignoreInput &= Double.isNaN(ulp) == false;
+		ignoreInput &= Double.isFinite(ulp) == true;
+		ignoreInput &= Math.abs(currValue - aValue) < ulp;
+		if (ignoreInput == true)
 			return;
 
 		// Simple edit if we are not currently being mutated
@@ -151,28 +311,26 @@ public class GNumberField extends JTextField implements DocumentListener, UnitLi
 	/**
 	 * Changes the range of acceptable values (in model units). Note the current value will be force to fit this range.
 	 */
-	public void setMinMaxValue(double aMinValue, double aMaxValue)
+	public void setMinMaxRange(Range<Double> aMinMaxRange)
 	{
-		Unit aUnit;
-
-		minValue = aMinValue;
-		maxValue = aMaxValue;
-		if (currValue < minValue || currValue > maxValue)
-			currValue = minValue;
+		minMaxRange = aMinMaxRange;
+		if (minMaxRange.hasLowerBound() == true && currValue < minMaxRange.lowerEndpoint())
+			currValue = minMaxRange.lowerEndpoint();
+		else if (minMaxRange.hasUpperBound() == true && currValue > minMaxRange.upperEndpoint())
+			currValue = minMaxRange.upperEndpoint();
 
 		// Update our document
-		aUnit = refUnitProvider.getUnit();
-		myDocument.setMinMaxValue(aUnit.toUnit(minValue), aUnit.toUnit(maxValue));
-	}
-
-	@Override
-	public void setDocument(Document aDoc)
-	{
-//		throw new UnsupportedOperationException();
-		if (aDoc != null)
-			aDoc.addDocumentListener(this);
-
-		super.setDocument(aDoc);
+		double minValue = minMaxRange.lowerEndpoint();
+		double maxValue = minMaxRange.upperEndpoint();
+		if (refUnitProvider != null)
+		{
+			Unit tmpUnit = refUnitProvider.getUnit();
+			myDocument.setMinMaxValue(tmpUnit.toUnit(minValue), tmpUnit.toUnit(maxValue));
+		}
+		else
+		{
+			myDocument.setMinMaxValue(minValue, maxValue);
+		}
 	}
 
 	@Override
@@ -194,6 +352,16 @@ public class GNumberField extends JTextField implements DocumentListener, UnitLi
 	}
 
 	@Override
+	public void setDocument(Document aDoc)
+	{
+//		throw new UnsupportedOperationException();
+		if (aDoc != null)
+			aDoc.addDocumentListener(this);
+
+		super.setDocument(aDoc);
+	}
+
+	@Override
 	public void unitChanged(UnitProvider aProvider, String aKey)
 	{
 		installUnit();
@@ -204,14 +372,11 @@ public class GNumberField extends JTextField implements DocumentListener, UnitLi
 	 */
 	protected void forceTF(double aValue)
 	{
-		Unit aUnit;
-		String aStr;
-
 		// Save off the new model value, and check the validity
 		currValue = aValue;
-		if (currValue < minValue || currValue > maxValue)
+		if (minMaxRange.contains(currValue) == false)
 			currValue = Double.NaN;
-//			throw new RuntimeException("Programatic input is invalid. Is unit compatible? Input: " + aValue);
+//			throw new RuntimeException("Programmatic input is invalid. Is unit compatible? Input: " + aValue);
 
 		// Invalid values shall just clear the text field and bail
 		if (Double.isNaN(currValue) == true)
@@ -220,13 +385,12 @@ public class GNumberField extends JTextField implements DocumentListener, UnitLi
 			return;
 		}
 
-		// Convert from model value to (unit) textual format
-		aUnit = refUnitProvider.getUnit();
-		aStr = aUnit.getString(currValue);
+		// Convert from model value to text
+		String tmpStr = transformToString(currValue);
 
 		// Update the GUI internals
 		myDocument.removeDocumentListener(this);
-		setText(aStr);
+		setText(tmpStr);
 		setCaretPosition(0);
 		myDocument.addDocumentListener(this);
 	}
@@ -236,20 +400,17 @@ public class GNumberField extends JTextField implements DocumentListener, UnitLi
 	 */
 	protected void installUnit()
 	{
-		Unit aUnit;
-		boolean aBool;
-
 		// Ensure that we have a valid Unit
-		aUnit = refUnitProvider.getUnit();
-		if (aUnit instanceof NumberUnit == false)
-			throw new RuntimeException("refUnitProvider must return a Unit of type NumberUnit. Unit: " + aUnit);
+		Unit tmpUnit = refUnitProvider.getUnit();
+		if (tmpUnit instanceof NumberUnit == false)
+			throw new RuntimeException("refUnitProvider must return a Unit of type NumberUnit. Unit: " + tmpUnit);
 
 		// Update our Document to reflect whether this Unit supports floating point numbers
-		aBool = (aUnit instanceof NumberUnit) && (((NumberUnit)aUnit).isFloating() == true);
-		myDocument.setAllowFloats(aBool);
+		boolean tmpBool = (tmpUnit instanceof NumberUnit) && (((NumberUnit) tmpUnit).isFloating() == true);
+		myDocument.setAllowFloats(tmpBool);
 
 		// Update the Document's MinMax values reflect the new Unit
-		setMinMaxValue(minValue, maxValue);
+		setMinMaxRange(minMaxRange);
 
 		// Force myDocument's text to match the new unit
 		forceTF(currValue);
@@ -258,19 +419,16 @@ public class GNumberField extends JTextField implements DocumentListener, UnitLi
 	/**
 	 * Keeps the "model" value conceptually linked to the GUI component. It will also trigger the actionEventListeners.
 	 */
-	protected void syncValue(DocumentEvent e)
+	protected void syncValue(DocumentEvent aEvent)
 	{
-		Unit aUnit;
-
 		// Mark ourself as mutating
 		isMutating = true;
 
-		// Convert the textual (unit) value to the model value
-		aUnit = refUnitProvider.getUnit();
-		currValue = aUnit.parseString(this.getText(), Double.NaN);
+		// Convert the string to the model value
+		currValue = transformToModel(this.getText());
 
 		// If the value is not in range then, it is invalid
-		if (currValue < minValue || currValue > maxValue)
+		if (minMaxRange.contains(currValue) == false)
 			currValue = Double.NaN;
 
 		// Notify our listeners and update the GUI
@@ -286,13 +444,55 @@ public class GNumberField extends JTextField implements DocumentListener, UnitLi
 	 */
 	protected void updateGui()
 	{
-		Color aColor;
-
-		aColor = passColor;
+		Color tmpColor = colorPass;
 		if (isValidInput() == false)
-			aColor = failColor;
+			tmpColor = colorFail;
 
-		setForeground(aColor);
+		setForeground(tmpColor);
+	}
+
+	/**
+	 * Helper method that will take a given value and convert it to a string.
+	 *
+	 * @param aValue
+	 */
+	private String transformToString(double aValue)
+	{
+		// Convert from model value to (unit) textual format
+		if (refUnitProvider != null)
+		{
+			Unit tmpUnit = refUnitProvider.getUnit();
+			String tmpStr = tmpUnit.getString(aValue);
+			return tmpStr;
+		}
+
+		return refFormat.format(aValue);
+	}
+
+	/**
+	 * Helper method that will take a String and convert it to the equivalent numerical value. On failure Double.NaN will
+	 * be returned.
+	 *
+	 * @param aValue
+	 */
+	private double transformToModel(String aStr)
+	{
+		// Convert the textual (unit) value to the model value
+		if (refUnitProvider != null)
+		{
+			Unit tmpUnit = refUnitProvider.getUnit();
+			double retValue = tmpUnit.parseString(aStr, Double.NaN);
+			return retValue;
+		}
+
+		try
+		{
+			return Double.parseDouble(aStr);
+		}
+		catch (NumberFormatException aExp)
+		{
+			return Double.NaN;
+		}
 	}
 
 }

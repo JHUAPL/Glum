@@ -1,116 +1,129 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.gui.panel.itemList.config;
 
-import java.awt.*;
+import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.event.*;
 import java.io.IOException;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
 
 import javax.swing.*;
-import javax.swing.border.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableCellRenderer;
 
-import com.google.common.collect.Sets;
-
-import glum.gui.*;
-import glum.gui.action.*;
+import glum.gui.FocusUtil;
+import glum.gui.GuiUtil;
+import glum.gui.action.ClickAction;
 import glum.gui.component.GComboBox;
 import glum.gui.component.GTextField;
-import glum.gui.icon.ArrowNorthIcon;
-import glum.gui.icon.ArrowSouthIcon;
-import glum.gui.icon.DeleteIcon;
-import glum.gui.misc.*;
-import glum.gui.panel.*;
-import glum.gui.panel.itemList.BasicItemHandler;
-import glum.gui.panel.itemList.ItemHandler;
-import glum.gui.panel.itemList.ItemListPanel;
-import glum.gui.panel.itemList.StaticItemProcessor;
-import glum.gui.panel.itemList.query.*;
+import glum.gui.icon.*;
+import glum.gui.misc.BooleanCellEditor;
+import glum.gui.misc.BooleanCellRenderer;
+import glum.gui.panel.GlassPanel;
+import glum.gui.panel.generic.MessagePanel;
+import glum.gui.panel.itemList.*;
+import glum.gui.panel.itemList.query.QueryAttribute;
+import glum.gui.panel.itemList.query.QueryComposer;
 import glum.zio.*;
 import net.miginfocom.swing.MigLayout;
 
-public class EditTablePanel extends GlassPanel implements ActionListener, ZioObj, ListSelectionListener
+/**
+ * UI component that allows for the configuration of the table contained by an {@link ItemListPanel}.
+ * <p>
+ * Construction of this panel involves passing a reference to the {@link ItemListPanel}'s {@link TableColumnHandler}.
+ * This handler is retrieved via {@link ItemListPanel#getTableColumnHandler()}.
+ *
+ * @author lopeznr1
+ */
+public class EditTablePanel<G2 extends Enum<?>> extends GlassPanel
+		implements ActionListener, ItemListener, ListSelectionListener, ZioObj
 {
+	// Attributes
+	private final TableColumnHandler<G2> refTableColumnHandler;
+
 	// GUI vars
-	protected JLabel titleL;
-	protected JRadioButton profileRB, customRB;
-	protected GComboBox<ProfileConfig> profileBox;
-	protected ItemListPanel<QueryAttribute> listPanel;
-	protected BooleanCellEditor col0Editor;
-	protected BooleanCellRenderer col0Renderer;
-	protected DefaultTableCellRenderer col1Renderer;
-	protected JButton closeB, saveB, upB, downB, deleteB;
-	protected JLabel labelL;
-	protected GTextField labelTF;
-	protected Font smallFont;
-	protected AddProfilePanel profilePanel;
+	private JLabel titleL;
+	private JRadioButton profileRB, customRB;
+	private GComboBox<ProfileConfig<G2>> profileBox;
+	private ItemListPanel<QueryAttribute<G2>, ConfigLookUp> listPanel;
+	private BooleanCellEditor col0Editor;
+	private BooleanCellRenderer col0Renderer;
+	private DefaultTableCellRenderer col1Renderer;
+	private JButton closeB, saveB, upB, downB, deleteB;
+	private JLabel labelL;
+	private GTextField labelTF;
+	private AddProfilePanel profilePanel;
 
 	// State vars
-	protected BasicItemHandler<?> refItemHandler;
-	protected StaticItemProcessor<QueryAttribute> myItemProcessor;
+	protected StaticItemProcessor<QueryAttribute<G2>> myItemProcessor;
 
-	public EditTablePanel(Component aParent, BasicItemHandler<?> aItemHandler)
+	/** Standard Constructor */
+	public EditTablePanel(Component aParent, TableColumnHandler<G2> aTableColumnHandler)
 	{
 		super(aParent);
 
 		// State vars
-		refItemHandler = aItemHandler;
+		refTableColumnHandler = aTableColumnHandler;
 
 		// Build the actual GUI
-		smallFont = (new JTextField()).getFont();
 		buildGuiArea();
 		setPreferredSize(new Dimension(250, getPreferredSize().height));
-		
+
 		profilePanel = new AddProfilePanel(this);
 		profilePanel.setSize(375, 140);
 		profilePanel.addActionListener(this);
-		
+
 		syncGui();
 		updateGui();
-		
+
 		// Set up some keyboard shortcuts
 		FocusUtil.addAncestorKeyBinding(this, "ESCAPE", new ClickAction(closeB));
 	}
 
 	/**
-	 * Adds a predefined profile (as specified in aConfig) to the
-	 * list of available profiles.
+	 * Adds a predefined profile (as specified in aConfig) to the list of available profiles.
+	 *
 	 * @param aConfig
 	 */
-	public void addConfig(ProfileConfig aConfig)
+	public void addConfig(ProfileConfig<G2> aConfig)
 	{
 		profileBox.addItem(aConfig);
 	}
-	
-	public ArrayList<ProfileConfig> getAllConfig()
+
+	public List<ProfileConfig<G2>> getAllConfig()
 	{
 		return profileBox.getAllItems();
 	}
-	
-	public BasicItemHandler<?> getItemHandler()
-	{
-		return refItemHandler;
-	}
-	
+
 	/**
-	 * Synchronizes the gui to match the model 
+	 * Synchronizes the gui to match the model
 	 */
 	public void syncGui()
 	{
-		myItemProcessor.setItems(refItemHandler.getSortedAttributes());
+		myItemProcessor.setItems(refTableColumnHandler.getOrderedAttributes());
 	}
-	
+
 	@Override
 	public void actionPerformed(ActionEvent aEvent)
 	{
-		Object source;
-		QueryAttribute aItem;
-		int index;
+		var tmpItem = listPanel.getSelectedItem();
 
-		aItem = listPanel.getSelectedItem();
-
-		source = aEvent.getSource();
+		var source = aEvent.getSource();
 		if (source == labelTF)
 		{
 			updateLayerAttribute();
@@ -118,8 +131,7 @@ public class EditTablePanel extends GlassPanel implements ActionListener, ZioObj
 		}
 		else if (source == deleteB)
 		{
-			profileBox.removeItem(profileBox.getChosenItem());
-			actionPerformed(new ActionEvent(profileBox, ID_UPDATE, null));
+			doActionDel();
 		}
 		else if (source == closeB)
 		{
@@ -128,145 +140,157 @@ public class EditTablePanel extends GlassPanel implements ActionListener, ZioObj
 		}
 		else if (source == saveB)
 		{
-			Set<String> nameSet;
-			
-			nameSet = Sets.newHashSet();
-			for (ProfileConfig aProfile : profileBox.getAllItems())
-				nameSet.add(aProfile.getName());
-			
+			var nameS = new HashSet<String>();
+			for (ProfileConfig<G2> aProfile : profileBox.getAllItems())
+				nameS.add(aProfile.name());
+
 			profilePanel.resetGui();
-			profilePanel.setReservedNames(nameSet);
+			profilePanel.setReservedNames(nameS);
 			profilePanel.setVisible(true);
 		}
 		else if (source == upB)
 		{
-			index = myItemProcessor.indexOf(aItem);
-			refItemHandler.moveSortedAttribute(index, index - 1);
-			refItemHandler.rebuildTableColumns();
-			
-			myItemProcessor.setItems(refItemHandler.getSortedAttributes());
+			var index = myItemProcessor.indexOf(tmpItem);
+			refTableColumnHandler.moveSortedAttribute(index, index - 1);
+			refTableColumnHandler.rebuildTableColumns();
+
+			myItemProcessor.setItems(refTableColumnHandler.getOrderedAttributes());
 		}
 		else if (source == downB)
 		{
-			index = myItemProcessor.indexOf(aItem);
-			refItemHandler.moveSortedAttribute(index, index + 1);
-			refItemHandler.rebuildTableColumns();
-			
-			myItemProcessor.setItems(refItemHandler.getSortedAttributes());
+			var index = myItemProcessor.indexOf(tmpItem);
+			refTableColumnHandler.moveSortedAttribute(index, index + 1);
+			refTableColumnHandler.rebuildTableColumns();
+
+			myItemProcessor.setItems(refTableColumnHandler.getOrderedAttributes());
 		}
 		else if (source == col0Editor)
 		{
-			refItemHandler.rebuildTableColumns();
+			refTableColumnHandler.rebuildTableColumns();
 		}
 		else if (source == profileBox || source == profileRB)
 		{
-			ProfileConfig aConfig;
-			
-			aConfig = profileBox.getChosenItem();
-			refItemHandler.setOrderAndConfig(aConfig.getItems());
-			refItemHandler.rebuildTableColumns();
-			
-			myItemProcessor.setItems(refItemHandler.getSortedAttributes());
+			var tmpConfig = profileBox.getChosenItem();
+			refTableColumnHandler.setOrderAndConfig(tmpConfig.getItems());
+			refTableColumnHandler.rebuildTableColumns();
+
+			myItemProcessor.setItems(refTableColumnHandler.getOrderedAttributes());
 		}
 		else if (source == profilePanel && aEvent.getID() == AddProfilePanel.ID_ACCEPT)
 		{
-			ProfileConfig aProfile;
-			Collection<QueryAttribute> aItemList;
-			String aName;
-			
-			aName = profilePanel.getInput();
-			aItemList = myItemProcessor.getItems();
-			for (QueryAttribute aAttribute : aItemList)
+			var tmpName = profilePanel.getInput();
+			var tmpItemL = myItemProcessor.getAllItems();
+			for (var aAttribute : myItemProcessor.getAllItems())
 				aAttribute.synchronizeAttribute();
-			
-			aProfile = new ProfileConfig(aName, aItemList);
-			profileBox.addItem(aProfile);
+
+			// Determine if this will result in a Profile being replaced
+			ProfileConfig<G2> repProfile = null;
+			for (ProfileConfig<G2> aProfile : profileBox.getAllItems())
+			{
+				if (aProfile.name().equals(tmpName) == true)
+					repProfile = aProfile;
+			}
+
+			var tmpProfile = new ProfileConfig<>(tmpName, tmpItemL);
+			if (repProfile == null)
+				profileBox.addItem(tmpProfile);
+			else
+				profileBox.replaceItem(repProfile, tmpProfile);
 		}
 
 		updateGui();
 	}
-	
+
+	@Override
+	public void itemStateChanged(ItemEvent aEvent)
+	{
+		var source = aEvent.getSource();
+		if (source == profileRB)
+		{
+			var tmpConfig = profileBox.getChosenItem();
+			refTableColumnHandler.setOrderAndConfig(tmpConfig.getItems());
+			refTableColumnHandler.rebuildTableColumns();
+
+			myItemProcessor.setItems(refTableColumnHandler.getOrderedAttributes());
+		}
+
+		updateGui();
+	}
+
+	@Override
+	public void valueChanged(ListSelectionEvent aEvent)
+	{
+		// Update only after the user has released the mouse
+		if (aEvent.getValueIsAdjusting() == true)
+			return;
+
+		updateGui();
+	}
+
 	@Override
 	public void zioRead(ZinStream aStream) throws IOException
 	{
-		ProfileConfig aProfile;
-		int numItems, profileIndex;
-		boolean aBool;
-		
 		super.zioRead(aStream);
-		
+
 		aStream.readVersion(0);
-		
-		aBool = aStream.readBool();
-		customRB.setSelected(aBool);
-		profileRB.setSelected(!aBool);
-		
-		numItems = aStream.readInt();
+
+		var tmpBool = aStream.readBool();
+		customRB.setSelected(tmpBool);
+		profileRB.setSelected(!tmpBool);
+
+		var numItems = aStream.readInt();
 		profileBox.removeAllItems();
 		for (int c1 = 0; c1 < numItems; c1++)
 		{
-			aProfile = new ProfileConfig("unnamed", myItemProcessor.getItems());
-			aProfile.zioRead(aStream);
-			
-			profileBox.addItem(aProfile);
+			var tmpProfileConfig = ProfileConfig.zioRead(aStream, myItemProcessor.getAllItems());
+			profileBox.addItem(tmpProfileConfig);
 		}
-		
-		profileIndex = aStream.readInt();
+
+		var profileIndex = aStream.readInt();
 		profileBox.removeActionListener(this);
-		if (profileIndex >= 0)		
+		if (profileIndex >= 0)
 			profileBox.setSelectedIndex(profileIndex);
 		profileBox.addActionListener(this);
-		
-		refItemHandler.zioRead(aStream);
-		
+
+		var tmpProfileConfig = ProfileConfig.zioRead(aStream, myItemProcessor.getAllItems());
+		refTableColumnHandler.setOrderAndConfig(tmpProfileConfig.getItems());
+		refTableColumnHandler.rebuildTableColumns();
+		refTableColumnHandler.setSortPriorityList(tmpProfileConfig.sortPriorityList());
+
+		myItemProcessor.setItems(refTableColumnHandler.getOrderedAttributes());
+
 		updateGui();
 	}
 
 	@Override
 	public void zioWrite(ZoutStream aStream) throws IOException
 	{
-		int numItems, profileIndex;
-		boolean aBool;
-		
 		super.zioWrite(aStream);
 
 		aStream.writeVersion(0);
-		
-		aBool = customRB.isSelected();
-		aStream.writeBool(aBool);
-		
-		numItems = profileBox.getAllItems().size();
+
+		var tmpBool = customRB.isSelected();
+		aStream.writeBool(tmpBool);
+
+		var numItems = profileBox.getAllItems().size();
 		aStream.writeInt(numItems);
-		
-		for (ProfileConfig aProfile : profileBox.getAllItems())
-		{
-			aProfile.zioWrite(aStream);
-		}
-		
-		profileIndex = profileBox.getSelectedIndex();
+
+		for (var aProfile : profileBox.getAllItems())
+			ProfileConfig.zioWrite(aStream, aProfile);
+
+		var profileIndex = profileBox.getSelectedIndex();
 		aStream.writeInt(profileIndex);
-		
-		refItemHandler.zioWrite(aStream);
-	}
 
-	@Override
-	public void valueChanged(ListSelectionEvent e)
-	{
-		// Update only after the user has released the mouse
-		if (e.getValueIsAdjusting() == true)
-			return;
-
-		updateGui();
+		var tmpProfileConfig = new ProfileConfig<>("", refTableColumnHandler.getOrderedAttributes(),
+				refTableColumnHandler.getSortPriorityList());
+		ProfileConfig.zioWrite(aStream, tmpProfileConfig);
 	}
 
 	/**
-	 * Builds the main GUI area
+	 * Helper method that builds the main GUI area
 	 */
-	protected void buildGuiArea()
+	private void buildGuiArea()
 	{
-		JPanel tmpPanel;
-		ProfileConfig aConfig;
-
 		// Form the layout
 		setLayout(new MigLayout("", "[left][grow][]", "[][][]3[grow][]"));
 
@@ -275,121 +299,130 @@ public class EditTablePanel extends GlassPanel implements ActionListener, ZioObj
 		add(titleL, "growx,span 2,wrap");
 
 		// Profile Area
-		profileRB = GuiUtil.createJRadioButton("Profile:", this, smallFont);
+		profileRB = GuiUtil.createJRadioButton(this, "Profile:");
 		add(profileRB, "span 1");
 
-		profileBox = new GComboBox<ProfileConfig>();
+		profileBox = new GComboBox<>();
 		profileBox.addActionListener(this);
-		profileBox.setFont(smallFont);
 		add(profileBox, "growx,span 1");
-		
-		deleteB = GuiUtil.createJButton(new DeleteIcon(14), this);
-		add(deleteB, "align right,span 1,w 20!, h 20!,wrap");
-		
-		// Custom Area
-		customRB = GuiUtil.createJRadioButton("Custom:", this, smallFont);
-		customRB.setSelected(true);
-		add(customRB, "span 1");
 
-		//saveB = GuiUtil.createJButton(new ArrowNorthIcon(14), this);
-		//add(saveB, "align right,span 1,w 18!, h 18!");
-		saveB = GuiUtil.createJButton("Save", this, smallFont);
+		deleteB = GuiUtil.createJButton(new DeleteIcon(14), this);
+		add(deleteB, "align right,span 1,w 20!,h 20!,wrap");
+
+		// Custom Area
+		customRB = GuiUtil.createJRadioButton(this, "Custom:");
+		add(customRB, "");
+
+		// saveB = GuiUtil.createJButton(new ArrowNorthIcon(14), this);
+		// add(saveB, "align right,span 1,w 18!, h 18!");
+		saveB = GuiUtil.createJButton("Save", this);
 		add(saveB, "align right,span 2,wrap");
-		
-		tmpPanel = buildItemListTablePanel();
+
+		var tmpPanel = buildItemListTablePanel();
 		tmpPanel.setBorder(new EmptyBorder(0, 15, 0, 0));
 		add(tmpPanel, "growx,growy,span,wrap");
 
 		// Link the radio buttons
 		GuiUtil.linkRadioButtons(profileRB, customRB);
-		
+
 		// Build the config area
 		tmpPanel = buildConfigPanel();
 		add(tmpPanel, "growx,span,wrap");
 
 		// Action area
-		closeB = GuiUtil.createJButton("Close", this, smallFont);
+		closeB = GuiUtil.createJButton("Close", this);
 		add(closeB, "align right,span");
 
 		// Add in the default profile
-		aConfig = new ProfileConfig(AddProfilePanel.DEFAULT_NAME, refItemHandler.getSortedAttributes());
-		profileBox.addItem(aConfig);
+		var tmpConfig = new ProfileConfig<>(ProfileConfig.DEFAULT_NAME, refTableColumnHandler.getOrderedAttributes());
+		profileBox.addItem(tmpConfig);
 
-		setBorder(new BevelBorder(BevelBorder.RAISED));
+		customRB.setSelected(true);
 	}
 
 	/**
-	 * Utility method to build the configuration area for the individual attributes
+	 * Helper method to build the configuration area for the individual attributes
 	 */
-	protected JPanel buildConfigPanel()
+	private JPanel buildConfigPanel()
 	{
-		JPanel tmpPanel;
-		
 		// Form the layout
-		tmpPanel = new JPanel();
+		var tmpPanel = new JPanel();
 		tmpPanel.setLayout(new MigLayout("", "0[grow][][]0", "0[][]10"));
 
 		// Title Area
-		labelL = GuiUtil.createJLabel("Label:", smallFont);
+		labelL = new JLabel("Label:", JLabel.LEADING);
 		tmpPanel.add(labelL, "growx,span 1");
-		
+
 		upB = GuiUtil.createJButton(new ArrowNorthIcon(14), this);
 		tmpPanel.add(upB, "align right,span 1,w 18!, h 18!");
-		
+
 		downB = GuiUtil.createJButton(new ArrowSouthIcon(14), this);
 		tmpPanel.add(downB, "align right,span 1,w 18!, h 18!,wrap");
-		
-		labelTF = new GTextField(this); 
+
+		labelTF = new GTextField(this);
 		tmpPanel.add(labelTF, "growx,span 3,wrap");
-		
+
 		return tmpPanel;
 	}
 
 	/**
-	 * Utility method to build the query item list table
+	 * Helper method to build the query item list table
 	 */
-	protected JPanel buildItemListTablePanel()
+	private JPanel buildItemListTablePanel()
 	{
-		QueryComposer<ConfigLookUp> aComposer;
-		ItemHandler<QueryAttribute> aItemHandler;
-		
-		aComposer = new QueryComposer<ConfigLookUp>();
-		aComposer.addAttribute(ConfigLookUp.IsVisible, Boolean.class, "", "");
-		aComposer.addAttribute(ConfigLookUp.Name, String.class, "Name", null);
-		aComposer.addAttribute(ConfigLookUp.Label, String.class, "Label", null);
-		
+		var tmpComposer = new QueryComposer<ConfigLookUp>();
+		tmpComposer.addAttribute(ConfigLookUp.IsVisible, Boolean.class, "", "");
+		tmpComposer.addAttribute(ConfigLookUp.Name, String.class, "Name", null);
+		tmpComposer.addAttribute(ConfigLookUp.Label, String.class, "Label", null);
+
 		col0Editor = new BooleanCellEditor();
 		col0Editor.addActionListener(this);
 		col0Renderer = new BooleanCellRenderer();
 		col1Renderer = new DefaultTableCellRenderer();
-		aComposer.setEditor(ConfigLookUp.IsVisible, col0Editor);
-		aComposer.setRenderer(ConfigLookUp.IsVisible, col0Renderer);
-		aComposer.setRenderer(ConfigLookUp.Name, col1Renderer);
-		aComposer.setRenderer(ConfigLookUp.Label, col1Renderer);
-		
-		aItemHandler = new ConfigHandler(aComposer);
-		
-		myItemProcessor = new StaticItemProcessor<QueryAttribute>();
-		myItemProcessor.setItems(refItemHandler.getSortedAttributes());
-		
-		listPanel = new ItemListPanel<QueryAttribute>(aItemHandler, myItemProcessor, false, false);
+		tmpComposer.setEditor(ConfigLookUp.IsVisible, col0Editor);
+		tmpComposer.setRenderer(ConfigLookUp.IsVisible, col0Renderer);
+		tmpComposer.setRenderer(ConfigLookUp.Name, col1Renderer);
+		tmpComposer.setRenderer(ConfigLookUp.Label, col1Renderer);
+
+		var tmpIH = new ConfigHandler<G2>();
+		myItemProcessor = new StaticItemProcessor<>();
+		myItemProcessor.setItems(refTableColumnHandler.getOrderedAttributes());
+
+		listPanel = new ItemListPanel<>(tmpIH, myItemProcessor, tmpComposer, false);
 		listPanel.setSortingEnabled(false);
 		listPanel.addListSelectionListener(this);
 		return listPanel;
 	}
-	
+
+	/**
+	 * Helper method that executes the delete profile action.
+	 */
+	private void doActionDel()
+	{
+		var tmpPick = profileBox.getChosenItem();
+		if (tmpPick.name() == ProfileConfig.DEFAULT_NAME)
+		{
+			var msgPanel = new MessagePanel(this, "Reserved Profile");
+			msgPanel.setInfo("The Default profile can not be deleted.");
+			msgPanel.setSize(400, 140);
+			msgPanel.setVisibleAsModal();
+			return;
+		}
+
+		profileBox.removeItem(profileBox.getChosenItem());
+		actionPerformed(new ActionEvent(profileBox, ID_UPDATE, null));
+	}
+
 	/**
 	 * Synchronizes the model to match the label gui
 	 */
-	protected void updateLayerAttribute()
+	private void updateLayerAttribute()
 	{
-		QueryAttribute chosenItem;
-		
-		chosenItem = listPanel.getSelectedItem();
+		var chosenItem = listPanel.getSelectedItem();
 		chosenItem.label = labelTF.getText();
-		
+
 		chosenItem.assocTableColumn.setHeaderValue(chosenItem.label);
-		
+
 		listPanel.repaint();
 //getParent().repaint();
 	}
@@ -397,16 +430,12 @@ public class EditTablePanel extends GlassPanel implements ActionListener, ZioObj
 	/**
 	 * Synchronizes our GUI vars
 	 */
-	protected void updateGui()
+	private void updateGui()
 	{
-		QueryAttribute chosenItem;
-		boolean isEnabled;
-		int chosenIndex;
-
 		// Update the profile area
-		isEnabled = profileRB.isSelected();
+		var isEnabled = profileRB.isSelected();
 		profileBox.setEnabled(isEnabled);
-		
+
 		isEnabled = isEnabled & (profileBox.getAllItems().size() > 1);
 		deleteB.setEnabled(isEnabled);
 
@@ -416,20 +445,20 @@ public class EditTablePanel extends GlassPanel implements ActionListener, ZioObj
 		GuiUtil.setEnabled(listPanel, isEnabled);
 		col0Renderer.setEnabled(isEnabled);
 		col1Renderer.setEnabled(isEnabled);
-		
-		chosenItem = listPanel.getSelectedItem();
-		chosenIndex = myItemProcessor.indexOf(chosenItem);
+
+		var chosenItem = listPanel.getSelectedItem();
+		var chosenIndex = myItemProcessor.indexOf(chosenItem);
 		if (chosenItem != null)
 			labelTF.setText(chosenItem.label);
 
 		isEnabled = isEnabled & (chosenItem != null);
 		labelL.setEnabled(isEnabled);
 		labelTF.setEnabled(isEnabled);
-		
-		upB.setEnabled(isEnabled & (chosenIndex > 0));
-		downB.setEnabled(isEnabled & (chosenIndex+1 < myItemProcessor.getNumItems()));
 
-		listPanel.repaint();			
+		upB.setEnabled(isEnabled & (chosenIndex > 0));
+		downB.setEnabled(isEnabled & (chosenIndex + 1 < myItemProcessor.getNumItems()));
+
+		listPanel.repaint();
 	}
 
 }

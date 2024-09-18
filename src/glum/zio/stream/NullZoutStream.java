@@ -1,18 +1,37 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.zio.stream;
-
-import glum.zio.ZoutStream;
 
 import java.io.IOException;
 
 import com.google.common.base.Charsets;
 
+import glum.zio.ZoutStream;
+import glum.zio.util.ZioUtil;
+
 /**
- * ZoutStream used to count bytes that would be written.
+ * {@link ZoutStream} used to count bytes that would be written.
+ * <p>
+ * Content is not written to any resource.
+ *
+ * @author lopeznr1
  */
 public class NullZoutStream implements ZoutStream
 {
 	private int byteCount;
 
+	/** Standard Constructor */
 	public NullZoutStream()
 	{
 		byteCount = 0;
@@ -60,6 +79,20 @@ public class NullZoutStream implements ZoutStream
 	public void writeChar(char aChar) throws IOException
 	{
 		byteCount += 2;
+	}
+
+	@Override
+	public <G1 extends Enum<?>> void writeEnum(G1 aEnum) throws IOException
+	{
+		if (aEnum == null)
+		{
+			writeVersion(0);
+			return;
+		}
+
+		writeVersion(1);
+		int ordinal = aEnum.ordinal();
+		ZioUtil.writeCompactInt(this, ordinal);
 	}
 
 	@Override
@@ -118,7 +151,8 @@ public class NullZoutStream implements ZoutStream
 
 		// Ensure the string size is less than 0x00FFFF
 		if (size >= 0x00FFFF)
-			throw new RuntimeException("Transformed UTF-8 string is too large! Max size: " + (0x00FFFF - 1) + "  Curr size:" + size);
+			throw new RuntimeException(
+					"Transformed UTF-8 string is too large! Max size: " + (0x00FFFF - 1) + "  Curr size:" + size);
 
 		byteCount += 2 + size;
 	}

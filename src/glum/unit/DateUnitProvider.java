@@ -1,16 +1,29 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.unit;
+
+import java.io.IOException;
+import java.util.*;
 
 import glum.zio.ZinStream;
 import glum.zio.ZoutStream;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.TimeZone;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-
+/**
+ * Implementation of {@link UnitProvider} that provides a unit compatible for processing chronological values.
+ *
+ * @author lopeznr1
+ */
 public class DateUnitProvider extends BaseUnitProvider
 {
 	// Config vars
@@ -20,9 +33,10 @@ public class DateUnitProvider extends BaseUnitProvider
 	private String cfgCustomPattern;
 
 	// State vars
-	private Map<String, DateUnit> protoMap;
+	private Map<String, DateUnit> protoM;
 	private DateUnit activeUnit;
 
+	/** Standard Constructor */
 	public DateUnitProvider(String aRefName, DateUnit aActiveUnit)
 	{
 		super(aRefName);
@@ -34,7 +48,7 @@ public class DateUnitProvider extends BaseUnitProvider
 		cfgCustomPattern = aActiveUnit.getFormat().toPattern();
 
 		// State vars
-		protoMap = Maps.newHashMap();
+		protoM = new HashMap<>();
 		activeUnit = null;
 
 		// Activate the default (prototype) unit
@@ -52,7 +66,7 @@ public class DateUnitProvider extends BaseUnitProvider
 		if (cfgProtoName == null)
 			cfgProtoName = aUnit.getConfigName();
 
-		protoMap.put(aUnit.getConfigName(), aUnit);
+		protoM.put(aUnit.getConfigName(), aUnit);
 	}
 
 	/**
@@ -76,7 +90,7 @@ public class DateUnitProvider extends BaseUnitProvider
 		DateUnit protoUnit;
 
 		// Ensure this proto unit is installed
-		protoUnit = protoMap.get(aProtoName);
+		protoUnit = protoM.get(aProtoName);
 		if (protoUnit == null)
 			throw new RuntimeException("Specified name is not installed as a prototype! aProtoName: " + aProtoName);
 
@@ -109,7 +123,7 @@ public class DateUnitProvider extends BaseUnitProvider
 	 */
 	public DateUnit getProtoUnit()
 	{
-		return protoMap.get(cfgProtoName);
+		return protoM.get(cfgProtoName);
 	}
 
 	/**
@@ -117,13 +131,7 @@ public class DateUnitProvider extends BaseUnitProvider
 	 */
 	public List<String> getProtoNameList()
 	{
-		return Lists.newArrayList(protoMap.keySet());
-	}
-
-	@Override
-	public String getConfigName()
-	{
-		return activeUnit.getConfigName();
+		return new ArrayList<>(protoM.keySet());
 	}
 
 	@Override

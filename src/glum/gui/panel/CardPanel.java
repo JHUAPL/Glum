@@ -1,40 +1,54 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.gui.panel;
 
-import java.awt.*;
+import java.awt.CardLayout;
+import java.awt.Component;
 import java.util.*;
 
-import javax.swing.*;
-
-import com.google.common.collect.*;
+import javax.swing.JPanel;
 
 /**
  * Panel that allows you to shuffle between a collection of "card" panels. Each card must be a descendant of JPanel.
- * <P>
- * Unlike CardLayout this class supports mapping of an object (rather than a string) to a card.
+ * <p>
+ * Unlike {@link CardLayout} this class supports mapping of an object (rather than a string) to a card.
+ *
+ * @author lopeznr1
  */
 public class CardPanel<G1> extends JPanel
 {
-	protected BiMap<Object, G1> keyMap;
-	protected Map<G1, String> revMap;
-	protected CardLayout myLayout;
-	protected G1 activeCard;
-	protected G1 backupCard;
+	// State vars
+	private HashMap<Object, G1> keyMap;
+	private Map<G1, String> revMap;
+	private CardLayout workCardLayout;
+	private G1 activeCard;
+	private G1 backupCard;
 
+	/** Standard Constructor */
 	public CardPanel()
 	{
-		super();
+		workCardLayout = new CardLayout();
+		setLayout(workCardLayout);
 
-		myLayout = new CardLayout();
-		setLayout(myLayout);
-
-		keyMap = HashBiMap.create();
+		keyMap = new HashMap<>();
 		revMap = new HashMap<>();
 		activeCard = null;
 		backupCard = null;
 	}
 
 	@Override
-	public Component add(String name, Component comp)
+	public Component add(String aName, Component aComp)
 	{
 		throw new RuntimeException("Improper method call. Use addCard() instead of add()");
 	}
@@ -42,29 +56,26 @@ public class CardPanel<G1> extends JPanel
 	/**
 	 * Adds and associates the key, aKey with the specified card aCard.
 	 */
-
 	public void addCard(Object aKey, G1 aCard)
 	{
 		// aCard must be of type Component
 		if ((aCard instanceof Component) == false)
-			throw new IllegalArgumentException("aCard must be of type Component. Found class: " + aCard.getClass().getName());
+			throw new IllegalArgumentException(
+					"aCard must be of type Component. Found class: " + aCard.getClass().getName());
 
-		// Add the card if no card associated with the key
+		// Associate the card with the specified key
 		if (keyMap.get(aKey) == null)
-		{
-			// Form the 2-way association of aKey and aComponent
 			keyMap.put(aKey, aCard);
-
-			// Form the 1-way mapping of aComponent to a (unique) strKey
-			String strKey = "" + revMap.size();
-			revMap.put(aCard, strKey);
-
-			add((Component)aCard, strKey);
-		}
 		// If the key is associated, then ensure it is matched to aCard
 		else if (keyMap.get(aKey) != aCard)
-		{
 			throw new RuntimeException("Attempting to add new card with an already inserted key: " + aKey);
+
+		// Form a mapping of aCard to a unique string key
+		if (revMap.containsKey(aCard) == false)
+		{
+			String strKey = "" + revMap.size();
+			revMap.put(aCard, strKey);
+			add((Component) aCard, strKey);
 		}
 
 		switchToCard(aKey);
@@ -78,17 +89,23 @@ public class CardPanel<G1> extends JPanel
 		return activeCard;
 	}
 
-	public Collection<G1> getAllCards()
+	public List<G1> getAllCards()
 	{
-		Collection<G1> itemList;
+		var retCardL = new ArrayList<G1>(keyMap.values());
+		return retCardL;
+	}
 
-		itemList = new ArrayList<G1>(keyMap.values());
-		return itemList;
+	/**
+	 * Returns the card associated with the specified key.
+	 */
+	public G1 getCardForKey(Object aKey)
+	{
+		return keyMap.get(aKey);
 	}
 
 	/**
 	 * Method to specify the backup card to use should no card be found that corresponds to the specified key.
-	 * <P>
+	 * <p>
 	 * This method will throw a RuntimeException if a card has not been associated with the specified key.
 	 */
 	public void setBackupCard(Object aKey)
@@ -100,11 +117,13 @@ public class CardPanel<G1> extends JPanel
 
 	/**
 	 * Causes this CardPanel to show the card associated with the specified key.
-	 * <P>
-	 * A RuntimeException will be thrown if there is no card associated with aKey and the backupCord has not been specified.
+	 * <p>
+	 * A RuntimeException will be thrown if there is no card associated with aKey and the backupCord has not been
+	 * specified.
 	 */
 	public void switchToCard(Object aKey)
 	{
+		// Switch to the proper card
 		activeCard = keyMap.get(aKey);
 		if (activeCard == null)
 			activeCard = backupCard;
@@ -113,22 +132,9 @@ public class CardPanel<G1> extends JPanel
 		if (activeCard == null)
 			throw new RuntimeException("No mapping found when switching to card: " + aKey);
 
-		switchToInstalledCard(activeCard);
-	}
-
-	/**
-	 * Causes this CardPanel to show the specified card. Throws a RuntimeException if the card was not previously added via addCard().
-	 */
-	public void switchToInstalledCard(G1 aCard)
-	{
-		if (keyMap.values().contains(aCard) == false)
-			throw new RuntimeException("No mapping found when switching to card: " + aCard);
-
-		// Switch to the proper card
-		activeCard = aCard;
-
-		String strKey = revMap.get(aCard);
-		myLayout.show(this, strKey);
+		// Switch the CardLayout to the activeCard
+		String strKey = revMap.get(activeCard);
+		workCardLayout.show(this, strKey);
 	}
 
 }

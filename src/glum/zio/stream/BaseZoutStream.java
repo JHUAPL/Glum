@@ -1,8 +1,17 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.zio.stream;
-
-import glum.util.WallTimer;
-import glum.zio.ZoutStream;
-import glum.zio.util.ZioUtil;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -13,6 +22,15 @@ import java.security.NoSuchAlgorithmException;
 import com.google.common.base.Charsets;
 import com.google.common.base.Strings;
 
+import glum.util.WallTimer;
+import glum.zio.ZoutStream;
+import glum.zio.util.ZioUtil;
+
+/**
+ * Base implementation of the {@link ZoutStream}.
+ *
+ * @author lopeznr1
+ */
 public abstract class BaseZoutStream implements ZoutStream
 {
 	// Work vars
@@ -24,11 +42,13 @@ public abstract class BaseZoutStream implements ZoutStream
 	private String checkSumStr;
 
 	/**
+	 * Standard Constructor
+	 *
 	 * @param computeCheckSum
-	 *           True if a checksum (md5sum) is desired to be computed as the stream is written
+	 *        True if a checksum (md5sum) is desired to be computed as the stream is written
 	 * @param isDirect
-	 *           True if a direct buffer is desired. This should only be true if the stream is going to a physical I/O component (disk, network) and the size of
-	 *           the final stream will be at least ~50 MB.
+	 *        True if a direct buffer is desired. This should only be true if the stream is going to a physical I/O
+	 *        component (disk, network) and the size of the final stream will be at least ~50 MB.
 	 */
 	public BaseZoutStream(boolean computeCheckSum, boolean isDirect) throws IOException
 	{
@@ -41,7 +61,7 @@ public abstract class BaseZoutStream implements ZoutStream
 			if (computeCheckSum == true)
 				digest = MessageDigest.getInstance("MD5");
 		}
-		catch(NoSuchAlgorithmException aExp)
+		catch (NoSuchAlgorithmException aExp)
 		{
 			throw new IOException("Unreconized Algorithm", aExp);
 		}
@@ -110,9 +130,9 @@ public abstract class BaseZoutStream implements ZoutStream
 	public void writeBool(boolean aBool) throws IOException
 	{
 		if (aBool == false)
-			writeByte((byte)0);
+			writeByte((byte) 0);
 		else
-			writeByte((byte)1);
+			writeByte((byte) 1);
 	}
 
 	@Override
@@ -123,6 +143,20 @@ public abstract class BaseZoutStream implements ZoutStream
 			emptyWorkBuffer();
 
 		workBuffer.putChar(aChar);
+	}
+
+	@Override
+	public <G1 extends Enum<?>> void writeEnum(G1 aEnum) throws IOException
+	{
+		if (aEnum == null)
+		{
+			writeVersion(0);
+			return;
+		}
+
+		writeVersion(1);
+		int ordinal = aEnum.ordinal();
+		ZioUtil.writeCompactInt(this, ordinal);
 	}
 
 	@Override
@@ -184,14 +218,14 @@ public abstract class BaseZoutStream implements ZoutStream
 		// Null strings are handled in special fashion
 		if (aStr == null)
 		{
-			writeShort((short)0x00FFFF);
+			writeShort((short) 0x00FFFF);
 			return;
 		}
 
 		// Empty strings are handled in special fashion
 		if (aStr.equals("") == true)
 		{
-			writeShort((short)0);
+			writeShort((short) 0);
 			return;
 		}
 
@@ -201,10 +235,11 @@ public abstract class BaseZoutStream implements ZoutStream
 
 		// Ensure the string size is less than 0x00FFFF
 		if (size >= 0x00FFFF)
-			throw new RuntimeException("Transformed UTF-8 string is too large! Max size: " + (0x00FFFF - 1) + "  Curr size:" + size);
+			throw new RuntimeException(
+					"Transformed UTF-8 string is too large! Max size: " + (0x00FFFF - 1) + "  Curr size:" + size);
 
 		// Write out the string
-		writeShort((short)(size & 0x00FFFF));
+		writeShort((short) (size & 0x00FFFF));
 		writeFully(data);
 	}
 
@@ -269,8 +304,9 @@ public abstract class BaseZoutStream implements ZoutStream
 	}
 
 	/**
-	 * Helper method that ensures the digest has been updated with any buffered data. The buffer will be cleared after the digest has been updated.
-	 * <P>
+	 * Helper method that ensures the digest has been updated with any buffered data. The buffer will be cleared after
+	 * the digest has been updated.
+	 * <p>
 	 * The method shall be called exclusively from {@link BaseZoutStream#emptyWorkBuffer()}.
 	 */
 	protected void clearWorkBuffer()
@@ -287,19 +323,20 @@ public abstract class BaseZoutStream implements ZoutStream
 	}
 
 	/**
-	 * Helper method to empty the workBuffer and copy the contents to the stream. The contents of the workBuffer will be output to the "stream". This method
-	 * ensures that workBuffer will always have enough data to support writing
+	 * Helper method to empty the workBuffer and copy the contents to the stream. The contents of the workBuffer will be
+	 * output to the "stream". This method ensures that workBuffer will always have enough data to support writing
 	 */
 	protected abstract void emptyWorkBuffer() throws IOException;
 
 	/**
-	 * Helper method to release any stream related vars. This method will only be called once, the very first time the method {@link #close()} is called.
+	 * Helper method to release any stream related vars. This method will only be called once, the very first time the
+	 * method {@link #close()} is called.
 	 */
 	protected abstract void releaseStreamVars() throws IOException;
 
 	/**
 	 * Helper method to allocate our work vars.
-	 * 
+	 *
 	 * @throws IOException
 	 */
 	private void allocateWorkVars(boolean isDirect) throws IOException
@@ -319,7 +356,7 @@ public abstract class BaseZoutStream implements ZoutStream
 			workCap = 512 * 1024;
 			workBuffer = ByteBuffer.allocateDirect(workCap);
 		}
-//System.out.println("Is direct buffer: " + workBuffer.isDirect() + " bufferCap: " + workCap);		
+//System.out.println("Is direct buffer: " + workBuffer.isDirect() + " bufferCap: " + workCap);
 
 		// Mark the buffers as empty
 		workBuffer.clear();

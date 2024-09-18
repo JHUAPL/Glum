@@ -1,12 +1,39 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.unit;
 
-import static glum.util.TimeConst.*;
+import static glum.util.TimeConst.MS_IN_DAY;
+import static glum.util.TimeConst.MS_IN_HOUR;
+import static glum.util.TimeConst.MS_IN_MIN;
+import static glum.util.TimeConst.MS_IN_SEC;
+
+import java.text.DecimalFormat;
+import java.time.Duration;
+
 import glum.util.WallTimer;
 
 /**
- * Unit used to display a total count of time. This Unit is not configurable and only numerical values should be passed
- * in where each increment represents 1 millisecond. If a WallTimer is passed in then this Unit will display it's total
- * time.
+ * {@link HeuristicUnit} used to display a total count of time.
+ * <p>
+ * This unit supports three types of inputs:
+ * <ul>
+ * <li>Numerical values - where each increment represents 1 millisecond.
+ * <li>{@link WallTimer} - where this unit will display it's total time.
+ * <li>{@link Duration}
+ * </ul>
+ *
+ * @author lopeznr1
  */
 public class TimeCountUnit extends HeuristicUnit
 {
@@ -15,43 +42,53 @@ public class TimeCountUnit extends HeuristicUnit
 	private static final long MAX_SEC_BEFORE_FMT_HOUR = 2 * MS_IN_HOUR;
 	private static final long MAX_SEC_BEFORE_FMT_MIN = 2 * MS_IN_MIN;
 
-	// State vars
-	private String nanStr;
+	// Attributes
+	private final String nanStr;
 
-	public TimeCountUnit(int numDecimalPlaces)
+	/** Standard Constructor */
+	public TimeCountUnit(DecimalFormat aDispFormat, String aNanStr)
 	{
-		super("Heuristic", numDecimalPlaces);
-		nanStr = "---";
+		super("Heuristic", aDispFormat);
+		nanStr = aNanStr;
+	}
+
+	/** Alternative Constructor */
+	public TimeCountUnit(int aNumDecimalPlaces, String aNanStr)
+	{
+		this(UnitUtil.formFormatWithNumDecimalPlaces(aNumDecimalPlaces), aNanStr);
+	}
+
+	/** Simplified Constructor */
+	public TimeCountUnit(int aNumDecimalPlaces)
+	{
+		this(UnitUtil.formFormatWithNumDecimalPlaces(aNumDecimalPlaces), "---");
 	}
 
 	@Override
 	public String getString(Object aObj)
 	{
-		double numMS;
-		String aStr;
-
 		// Transform WallTimers to their total count
 		if (aObj instanceof WallTimer)
-			aObj = ((WallTimer)aObj).getTotal();
+			aObj = ((WallTimer) aObj).getTotal();
 
 		// We need a number
-		if (aObj instanceof Number == false)
-			return "N/A";
+		if (aObj instanceof Duration)
+			aObj = ((Duration) aObj).toMillis();
+		else if (aObj instanceof Number == false)
+			return nanStr;
 
-		numMS = ((Number)aObj).doubleValue();
+		var numMS = ((Number) aObj).doubleValue();
 		if (Double.isNaN(numMS) == true)
 			return nanStr;
 
 		if (numMS > MAX_SEC_BEFORE_FMT_DAY)
-			aStr = format.format(numMS / MS_IN_DAY) + " days";
+			return dispFormat.format(numMS / MS_IN_DAY) + " days";
 		else if (numMS > MAX_SEC_BEFORE_FMT_HOUR)
-			aStr = format.format(numMS / MS_IN_HOUR) + " hrs";
+			return dispFormat.format(numMS / MS_IN_HOUR) + " hrs";
 		else if (numMS > MAX_SEC_BEFORE_FMT_MIN)
-			aStr = format.format(numMS / MS_IN_MIN) + " min";
+			return dispFormat.format(numMS / MS_IN_MIN) + " min";
 		else
-			aStr = format.format(numMS / MS_IN_SEC) + " sec";
-
-		return aStr;
+			return dispFormat.format(numMS / MS_IN_SEC) + " sec";
 	}
 
 	@Override

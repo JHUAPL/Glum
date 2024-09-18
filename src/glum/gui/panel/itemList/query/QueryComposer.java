@@ -1,3 +1,16 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.gui.panel.itemList.query;
 
 import java.util.*;
@@ -9,34 +22,44 @@ import javax.swing.table.TableCellRenderer;
 
 import com.google.common.base.Preconditions;
 
+import glum.gui.panel.itemList.ItemListPanel;
 import glum.unit.UnitProvider;
 
+/**
+ * Object which allows a collection of QueryAttributes to be programmatically constructed. This object provides for a
+ * simplified and uniform method for construction the {@link QueryAttribute}s that will be associated with a
+ * {@link ItemListPanel}.
+ *
+ * @param <G1>
+ * 
+ * @author lopeznr1
+ */
 public class QueryComposer<G1 extends Enum<?>>
 {
 	// State vars
-	protected ArrayList<QueryAttribute> itemList;
-//	protected Map<G1, QueryAttribute> itemMap;
+	protected ArrayList<QueryAttribute<G1>> itemL;
+//	protected Map<G1, QueryAttribute<G1>> itemM;
 
 	public QueryComposer()
 	{
-		itemList = new ArrayList<>();
-//		itemMap = Maps.newLinkedHashMap();
+		itemL = new ArrayList<>();
+//		itemM = new LinkedHashMap<>();
 	}
 
 	/**
 	 * Return the QueryAttribute located at aIndex
 	 */
-	public QueryAttribute get(int aIndex)
+	public QueryAttribute<G1> get(int aIndex)
 	{
-		return itemList.get(aIndex);
+		return itemL.get(aIndex);
 	}
 
 	/**
 	 * Return the QueryAttribute associated with aRefKey
 	 */
-	public QueryAttribute getItem(G1 aRefKey)
+	public QueryAttribute<G1> getItem(G1 aRefKey)
 	{
-		for (QueryAttribute aItem : itemList)
+		for (QueryAttribute<G1> aItem : itemL)
 		{
 			if (aItem.refKey == aRefKey)
 				return aItem;
@@ -48,39 +71,39 @@ public class QueryComposer<G1 extends Enum<?>>
 	/**
 	 * Returns a listing of all the QueryAttributes that were composed
 	 */
-	public Collection<QueryAttribute> getItems()
+	public Collection<QueryAttribute<G1>> getItems()
 	{
-		return new ArrayList<>(itemList);
+		return new ArrayList<>(itemL);
 	}
 
 	/**
 	 * Returns a listing of the items found between sIndex, eIndex (inclusive)
 	 */
-	public Collection<QueryAttribute> getItemsFrom(int sIndex, int eIndex)
+	public Collection<QueryAttribute<G1>> getItemsFrom(int sIndex, int eIndex)
 	{
-		List<QueryAttribute> rList;
+		List<QueryAttribute<G1>> retL;
 
-		rList = new ArrayList<>((eIndex - sIndex) + 1);
+		retL = new ArrayList<>((eIndex - sIndex) + 1);
 		for (int c1 = sIndex; c1 <= eIndex; c1++)
-			rList.add(itemList.get(c1));
+			retL.add(itemL.get(c1));
 
-		return rList;
+		return retL;
 	}
 
 	/**
 	 * Returns a listing of the items found between sKey, eKey (inclusive)
 	 */
-	public Collection<QueryAttribute> getItemsFrom(G1 sKey, G1 eKey)
+	public Collection<QueryAttribute<G1>> getItemsFrom(G1 sKey, G1 eKey)
 	{
 		int sIndex, eIndex;
 
-		// Locate the indexes for the coresponding elements
+		// Locate the indexes for the corresponding elements
 		sIndex = eIndex = -1;
-		for (int c1 = 0; c1 < itemList.size(); c1++)
+		for (int c1 = 0; c1 < itemL.size(); c1++)
 		{
-			if (itemList.get(c1).refKey == sKey)
+			if (itemL.get(c1).refKey == sKey)
 				sIndex = c1;
-			if (itemList.get(c1).refKey == eKey)
+			if (itemL.get(c1).refKey == eKey)
 				eIndex = c1;
 		}
 
@@ -100,35 +123,36 @@ public class QueryComposer<G1 extends Enum<?>>
 	 */
 	public int size()
 	{
-		return itemList.size();
+		return itemL.size();
 	}
 
 	/**
 	 * Method to add a QueryAttribute to this container
 	 */
-	public QueryAttribute addAttribute(G1 aRefKey, UnitProvider aUnitProvider, String aName, String maxValue)
+	public QueryAttribute<G1> addAttribute(G1 aRefKey, UnitProvider aUnitProvider, String aName, String maxValue)
 	{
 		return addAttribute(aRefKey, aUnitProvider, aName, maxValue, true);
 	}
 
-	public QueryAttribute addAttribute(G1 aRefKey, UnitProvider aUnitProvider, String aName, String maxValue, boolean isVisible)
+	public QueryAttribute<G1> addAttribute(G1 aRefKey, UnitProvider aUnitProvider, String aName, String maxValue,
+			boolean isVisible)
 	{
-		QueryAttribute aAttribute;
+		QueryAttribute<G1> retAttribute;
 
 		// Insanity check
 		Preconditions.checkNotNull(aUnitProvider);
 
-		aAttribute = addAttribute(aRefKey, Double.class, aName, maxValue, isVisible);
-		aAttribute.refUnitProvider = aUnitProvider;
-		return aAttribute;
+		retAttribute = addAttribute(aRefKey, Double.class, aName, maxValue, isVisible);
+		retAttribute.refUnitProvider = aUnitProvider;
+		return retAttribute;
 	}
 
-	public QueryAttribute addAttribute(G1 aRefKey, Class<?> aClass, String aName, String maxValue)
+	public QueryAttribute<G1> addAttribute(G1 aRefKey, Class<?> aClass, String aName, String maxValue)
 	{
 		return addAttribute(aRefKey, aClass, aName, maxValue, true);
 	}
 
-	public QueryAttribute addAttribute(G1 aRefKey, Class<?> aClass, String aName, String maxValue, boolean isVisible)
+	public QueryAttribute<G1> addAttribute(G1 aRefKey, Class<?> aClass, String aName, String maxValue, boolean isVisible)
 	{
 		int maxSize;
 
@@ -140,14 +164,14 @@ public class QueryComposer<G1 extends Enum<?>>
 		return addAttribute(aRefKey, aClass, aName, maxSize, isVisible);
 	}
 
-	public QueryAttribute addAttribute(G1 aRefKey, Class<?> aClass, String aName, int aMaxSize)
+	public QueryAttribute<G1> addAttribute(G1 aRefKey, Class<?> aClass, String aName, int aMaxSize)
 	{
 		return addAttribute(aRefKey, aClass, aName, aMaxSize, true);
 	}
 
-	public QueryAttribute addAttribute(G1 aRefKey, Class<?> aClass, String aLabel, int aMaxSize, boolean isVisible)
+	public QueryAttribute<G1> addAttribute(G1 aRefKey, Class<?> aClass, String aLabel, int aMaxSize, boolean isVisible)
 	{
-		QueryAttribute aAttribute;
+		QueryAttribute<G1> retAttribute;
 		int defaultSize, minSize, maxSize;
 
 		// Get the defaultSize
@@ -167,28 +191,26 @@ public class QueryComposer<G1 extends Enum<?>>
 			defaultSize = maxSize;
 
 		// Form the attribute
-		aAttribute = new QueryAttribute(itemList.size());
-		aAttribute.refKey = aRefKey;
-		aAttribute.refClass = aClass;
-		aAttribute.label = aLabel;
-		aAttribute.defaultSize = defaultSize;
-		aAttribute.maxSize = maxSize;
-		aAttribute.minSize = minSize;
-		aAttribute.isVisible = isVisible;
+		retAttribute = new QueryAttribute<>(aRefKey, aClass, itemL.size());
+		retAttribute.label = aLabel;
+		retAttribute.defaultSize = defaultSize;
+		retAttribute.maxSize = maxSize;
+		retAttribute.minSize = minSize;
+		retAttribute.isVisible = isVisible;
 
-		itemList.add(aAttribute);
-		return aAttribute;
+		itemL.add(retAttribute);
+		return retAttribute;
 	}
 
-	public QueryAttribute addAttribute(G1 aRefKey, Enum<?> enumSet[], String aName)
+	public QueryAttribute<G1> addAttribute(G1 aRefKey, Enum<?> enumSet[], String aName)
 	{
 		return addAttribute(aRefKey, enumSet, aName, true);
 	}
 
-	public QueryAttribute addAttribute(G1 aRefKey, Enum<?> enumSet[], String aLabel, boolean isVisible)
+	public QueryAttribute<G1> addAttribute(G1 aRefKey, Enum<?> enumSet[], String aLabel, boolean isVisible)
 	{
-		QueryAttribute aAttribute;
-		int defaultSize, aSize;
+		QueryAttribute<G1> retAttribute;
+		int defaultSize, tmpSize;
 
 		// Get the defaultSize
 		defaultSize = 10;
@@ -197,23 +219,21 @@ public class QueryComposer<G1 extends Enum<?>>
 
 		for (Enum<?> aEnum : enumSet)
 		{
-			aSize = computeStringWidth(aEnum.toString());
-			if (aSize > defaultSize)
-				defaultSize = aSize;
+			tmpSize = computeStringWidth(aEnum.toString());
+			if (tmpSize > defaultSize)
+				defaultSize = tmpSize;
 		}
 
 		// Form the attribute
-		aAttribute = new QueryAttribute(itemList.size());
-		aAttribute.refKey = aRefKey;
-		aAttribute.refClass = Enum.class;
-		aAttribute.label = aLabel;
-		aAttribute.defaultSize = defaultSize;
-		aAttribute.maxSize = defaultSize;
-		aAttribute.minSize = 15;
-		aAttribute.isVisible = isVisible;
+		retAttribute = new QueryAttribute<>(aRefKey, Enum.class, itemL.size());
+		retAttribute.label = aLabel;
+		retAttribute.defaultSize = defaultSize;
+		retAttribute.maxSize = defaultSize;
+		retAttribute.minSize = 15;
+		retAttribute.isVisible = isVisible;
 
-		itemList.add(aAttribute);
-		return aAttribute;
+		itemL.add(retAttribute);
+		return retAttribute;
 	}
 
 	/**
@@ -221,7 +241,7 @@ public class QueryComposer<G1 extends Enum<?>>
 	 */
 	public void setEditor(G1 aRefKey, TableCellEditor aEditor)
 	{
-		for (QueryAttribute aItem : itemList)
+		for (QueryAttribute<G1> aItem : itemL)
 		{
 			if (aItem.refKey == aRefKey)
 			{
@@ -238,16 +258,18 @@ public class QueryComposer<G1 extends Enum<?>>
 	 */
 	public void setRenderer(G1 aRefKey, TableCellRenderer aRenderer)
 	{
-		for (QueryAttribute aItem : itemList)
+		boolean isPass = false;
+		for (QueryAttribute<G1> aItem : itemL)
 		{
 			if (aItem.refKey == aRefKey)
 			{
 				aItem.renderer = aRenderer;
-				return;
+				isPass = true;
 			}
 		}
 
-		throw new RuntimeException("No item found with the key:" + aRefKey);
+		if (isPass == false)
+			throw new RuntimeException("No item found with the key:" + aRefKey);
 	}
 
 	/**

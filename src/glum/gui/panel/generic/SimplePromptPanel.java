@@ -1,16 +1,38 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.gui.panel.generic;
 
-import java.awt.*;
-import java.awt.event.*;
-import javax.swing.*;
-import javax.swing.border.*;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
-import glum.gui.*;
+import javax.swing.*;
+
+import glum.gui.FocusUtil;
+import glum.gui.GuiUtil;
 import glum.gui.action.ClickAction;
 import glum.gui.panel.GlassPanel;
-import glum.gui.panel.generic.GenericCodes;
 import net.miginfocom.swing.MigLayout;
 
+/**
+ * {@link GlassPanel} used to prompt the user of an action to be taken. A message will be provided via a {@link JLabel}.
+ * <p>
+ * The title and (prompt) message can be customized.
+ *
+ * @author lopeznr1
+ */
 public class SimplePromptPanel extends GlassPanel implements ActionListener, GenericCodes
 {
 	// GUI vars
@@ -20,6 +42,7 @@ public class SimplePromptPanel extends GlassPanel implements ActionListener, Gen
 	// State vars
 	protected boolean isAccepted;
 
+	/** Standard Constructor */
 	public SimplePromptPanel(Component aParent)
 	{
 		super(aParent);
@@ -62,9 +85,7 @@ public class SimplePromptPanel extends GlassPanel implements ActionListener, Gen
 	@Override
 	public void actionPerformed(ActionEvent aEvent)
 	{
-		Object source;
-
-		source = aEvent.getSource();
+		var source = aEvent.getSource();
 		if (source == cancelB)
 		{
 			isAccepted = false;
@@ -91,26 +112,22 @@ public class SimplePromptPanel extends GlassPanel implements ActionListener, Gen
 	 */
 	protected void buildGuiArea()
 	{
-		Font aFont;
-
 		setLayout(new MigLayout("", "[right][grow][][]", "[][][20!][]"));
-		aFont = (new JTextField()).getFont();
+		var tmpFont = (new JTextField()).getFont();
 
 		// Title Area
 		titleL = new JLabel("Title", JLabel.CENTER);
 		add(titleL, "growx,span,wrap");
 
 		// Message area
-		messageL = GuiUtil.createJLabel("Message", aFont);
+		messageL = GuiUtil.createJLabel("Message", tmpFont);
 		add(messageL, "growx,span,wrap");
 
 		// Control area
-		cancelB = GuiUtil.createJButton("Cancel", this, aFont);
-		acceptB = GuiUtil.createJButton("Accept", this, aFont);
+		cancelB = GuiUtil.createJButton("Cancel", this);
+		acceptB = GuiUtil.createJButton("Accept", this);
 		add(cancelB, "skip 2");
 		add(acceptB, "");
-
-		setBorder(new BevelBorder(BevelBorder.RAISED));
 	}
 
 }

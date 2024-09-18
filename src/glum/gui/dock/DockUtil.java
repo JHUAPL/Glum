@@ -1,13 +1,25 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.gui.dock;
 
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import javax.swing.Icon;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 import bibliothek.gui.DockController;
 import bibliothek.gui.DockFrontend;
@@ -20,6 +32,11 @@ import bibliothek.gui.dock.action.actions.SimpleButtonAction;
 import bibliothek.gui.dock.station.screen.ScreenFullscreenAction;
 import bibliothek.gui.dock.station.split.SplitFullScreenAction;
 
+/**
+ * Collection of utility methods useful for working dockables / dock stations.
+ *
+ * @author lopeznr1
+ */
 public class DockUtil
 {
 	/**
@@ -27,14 +44,14 @@ public class DockUtil
 	 */
 	public static SimpleButtonAction createAction(String aText, Icon aIcon, ActionListener aListener)
 	{
-		SimpleButtonAction aAction;
+		SimpleButtonAction retAction;
 
-		aAction = new SimpleButtonAction();
-		aAction.setText(aText);
-		aAction.setIcon(aIcon);
-		aAction.addActionListener(aListener);
+		retAction = new SimpleButtonAction();
+		retAction.setText(aText);
+		retAction.setIcon(aIcon);
+		retAction.addActionListener(aListener);
 
-		return aAction;
+		return retAction;
 	}
 
 	/**
@@ -44,24 +61,24 @@ public class DockUtil
 	 */
 	public static DockAction createFullScreenAction(DockStation aStation, DockController aController)
 	{
-		DockAction fullScreenAction;
+		DockAction retAction;
 
 		if (aStation instanceof SplitDockStation)
 		{
-			fullScreenAction = new SplitFullScreenAction((SplitDockStation)aStation);
-			((SplitFullScreenAction)fullScreenAction).setController(aController);
+			retAction = new SplitFullScreenAction((SplitDockStation) aStation);
+			((SplitFullScreenAction) retAction).setController(aController);
 		}
 		else if (aStation instanceof ScreenDockStation)
 		{
-			fullScreenAction = new ScreenFullscreenAction((ScreenDockStation)aStation);
-			((ScreenFullscreenAction)fullScreenAction).setController(aController);
+			retAction = new ScreenFullscreenAction((ScreenDockStation) aStation);
+			((ScreenFullscreenAction) retAction).setController(aController);
 		}
 		else
 		{
 			throw new RuntimeException("Unsupported Dockable type: " + aStation);
 		}
 
-		return fullScreenAction;
+		return retAction;
 	}
 
 	/**
@@ -75,7 +92,7 @@ public class DockUtil
 		{
 			evalDockable = aStation.getDockable(c1);
 			if (evalDockable instanceof DockStation)
-				evalDockable = findDockable((DockStation)evalDockable, aClass);
+				evalDockable = findDockable((DockStation) evalDockable, aClass);
 
 			if (evalDockable.getClass() == aClass)
 				return aClass.cast(evalDockable);
@@ -90,19 +107,19 @@ public class DockUtil
 	 */
 	public static List<Dockable> findDockableList(DockFrontend aFrontend, Class<?>... aClassArr)
 	{
-		Set<Class<?>> classSet;
-		List<Dockable> itemList;
+		Set<Class<?>> tmpClassS;
+		List<Dockable> retItemL;
 
 		// Transform the match class array to a set
-		classSet = Sets.newHashSet();
+		tmpClassS = new HashSet<>();
 		for (Class<?> aClass : aClassArr)
-			classSet.add(aClass);
+			tmpClassS.add(aClass);
 
-		itemList = Lists.newLinkedList();
+		retItemL = new ArrayList<>();
 		for (DockStation aStation : aFrontend.getRoots())
-			findDockableList(aStation, classSet, itemList);
+			findDockableList(aStation, tmpClassS, retItemL);
 
-		return itemList;
+		return retItemL;
 	}
 
 	/**
@@ -111,18 +128,18 @@ public class DockUtil
 	 */
 	public static <G1 extends Dockable> List<G1> findDockableList(DockFrontend aFrontend, Class<G1> aClass)
 	{
-		Set<Class<?>> classSet;
-		List<G1> itemList;
+		Set<Class<?>> tmpClassS;
+		List<G1> retItemL;
 
 		// Transform the match class array to a set
-		classSet = Sets.newHashSet();
-		classSet.add(aClass);
+		tmpClassS = new HashSet<>();
+		tmpClassS.add(aClass);
 
-		itemList = Lists.newLinkedList();
+		retItemL = new ArrayList<>();
 		for (DockStation aStation : aFrontend.getRoots())
-			findDockableList(aStation, classSet, itemList);
+			findDockableList(aStation, tmpClassS, retItemL);
 
-		return itemList;
+		return retItemL;
 	}
 
 	/**
@@ -131,18 +148,18 @@ public class DockUtil
 	 */
 	public static List<Dockable> findDockableList(DockStation aStation, Class<?>... aClassArr)
 	{
-		Set<Class<?>> classSet;
-		List<Dockable> itemList;
+		Set<Class<?>> tmpClassS;
+		List<Dockable> retItemL;
 
 		// Transform the match class array to a set
-		classSet = Sets.newHashSet();
+		tmpClassS = new HashSet<>();
 		for (Class<?> aClass : aClassArr)
-			classSet.add(aClass);
+			tmpClassS.add(aClass);
 
-		itemList = Lists.newLinkedList();
-		findDockableList(aStation, classSet, itemList);
+		retItemL = new ArrayList<>();
+		findDockableList(aStation, tmpClassS, retItemL);
 
-		return itemList;
+		return retItemL;
 	}
 
 	/**
@@ -151,32 +168,32 @@ public class DockUtil
 	 */
 	public static <G1 extends Dockable> List<G1> findDockableList(DockStation aStation, Class<G1> aClass)
 	{
-		Set<Class<?>> classSet;
-		List<G1> itemList;
+		Set<Class<?>> tmpClassS;
+		List<G1> retItemL;
 
 		// Transform the match class array to a set
-		classSet = Sets.newHashSet();
-		classSet.add(aClass);
+		tmpClassS = new HashSet<>();
+		tmpClassS.add(aClass);
 
-		itemList = Lists.newLinkedList();
-		findDockableList(aStation, classSet, itemList);
+		retItemL = new ArrayList<>();
+		findDockableList(aStation, tmpClassS, retItemL);
 
-		return itemList;
+		return retItemL;
 	}
 
 	/**
 	 * Helper method to remove all PlotGroupStations and ChartDockables
 	 */
-	public static <G1 extends Dockable> void removeAllDockablesOfType(DockFrontend aFrontend, Class<?>... dockTypeArr)
+	public static <G1 extends Dockable> void removeAllDockablesOfType(DockFrontend aFrontend, Class<?>... aDockTypeArr)
 	{
-		List<Dockable> dockList;
+		List<Dockable> dockL;
 		DockStation dockStation;
 
 		// Gather all of the Dockables of interest
-		dockList = DockUtil.findDockableList(aFrontend, dockTypeArr);
+		dockL = DockUtil.findDockableList(aFrontend, aDockTypeArr);
 
 		// Remove all of the Dockables
-		for (Dockable aDock : dockList)
+		for (Dockable aDock : dockL)
 		{
 			dockStation = aDock.getDockParent();
 			if (dockStation != null)
@@ -189,24 +206,25 @@ public class DockUtil
 	 * results will be stored in aItemList
 	 */
 	@SuppressWarnings("unchecked")
-	private static <G1 extends Dockable> void findDockableList(DockStation aStation, Set<Class<?>> aClassSet, List<G1> aItemList)
+	private static <G1 extends Dockable> void findDockableList(DockStation aStation, Set<Class<?>> aClassS,
+			List<G1> aItemL)
 	{
 		Dockable evalDockable;
 
 		for (int c1 = 0; c1 < aStation.getDockableCount(); c1++)
 		{
 			evalDockable = aStation.getDockable(c1);
-			for (Class<?> aClass : aClassSet)
+			for (Class<?> aClass : aClassS)
 			{
 				if (aClass.isAssignableFrom(evalDockable.getClass()) == true)
 				{
-					aItemList.add((G1)evalDockable);
+					aItemL.add((G1) evalDockable);
 					break;
 				}
 			}
 
 			if (evalDockable instanceof DockStation)
-				findDockableList((DockStation)evalDockable, aClassSet, aItemList);
+				findDockableList((DockStation) evalDockable, aClassS, aItemL);
 		}
 	}
 

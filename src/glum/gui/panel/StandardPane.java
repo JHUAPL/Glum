@@ -1,30 +1,44 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.gui.panel;
 
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Graphics;
+import java.awt.*;
 
 import javax.swing.JComponent;
 import javax.swing.RootPaneContainer;
+
 import glum.gui.GuiUtil;
-import glum.gui.panel.CustomFocusTraversalPolicy;
 import net.miginfocom.swing.MigLayout;
 
+/**
+ * UI panel for displaying an overlayed {@link Component}.
+ *
+ * @author lopeznr1
+ */
 public class StandardPane extends JComponent
 {
 	// Communicator vars
-	protected Component refParent;
-	protected JComponent displayPane;
+	private final Component refParent;
+	private final JComponent displayPane;
 
-	protected RootPaneContainer rootPane;
+	private RootPaneContainer rootPane;
 
 	// State vars
-	protected Color fillColor;
-	protected CustomFocusTraversalPolicy myFocusPolicy;
+	private Color fillColor;
+//	private CustomFocusTraversalPolicy myFocusPolicy;
 
-	/**
-	 * Constructor
-	 */
+	/** Standard Constructor */
 	public StandardPane(Component aRefParent, JComponent aDisplayPane)
 	{
 		// Communicator vars
@@ -77,7 +91,7 @@ public class StandardPane extends JComponent
 
 		// Set up a ComponentTracker to keep this ShadePane linked to the rootPane
 		aTracker = new ComponentTracker(this);
-		aTracker.setResizedTracker((Component)rootPane);
+		aTracker.setResizedTracker((Component) rootPane);
 	}
 
 	@Override

@@ -1,22 +1,39 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.gui.unit;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.text.DecimalFormat;
 import java.util.List;
-import javax.swing.*;
+
+import javax.swing.JCheckBox;
+import javax.swing.JLabel;
+
+import com.google.common.collect.Range;
 
 import glum.gui.GuiUtil;
 import glum.gui.component.GComboBox;
 import glum.gui.component.GNumberField;
-import glum.unit.ConstUnitProvider;
-import glum.unit.DecimalUnitProvider;
-import glum.unit.NumberUnit;
-import glum.unit.Unit;
-import glum.unit.UnitProvider;
-
+import glum.unit.*;
 import net.miginfocom.swing.MigLayout;
 
+/**
+ * User input component that allows the user to specify a {@link DecimalUnitProvider}.
+ *
+ * @author lopeznr1
+ */
 public class DecimalUnitPanel extends EditorPanel implements ActionListener
 {
 	// Gui components
@@ -28,10 +45,9 @@ public class DecimalUnitPanel extends EditorPanel implements ActionListener
 	// State vars
 	private DecimalUnitProvider myUnitProvider;
 
+	/** Standard Constructor */
 	public DecimalUnitPanel()
 	{
-		super();
-
 		myUnitProvider = null;
 
 		buildGuiArea();
@@ -50,26 +66,21 @@ public class DecimalUnitPanel extends EditorPanel implements ActionListener
 	@Override
 	public void setUnitProvider(UnitProvider aUnitProvider)
 	{
-		int decimalPlaces;
-		boolean forceFullLabel;
-		List<Unit> unitList;
-		Unit protoUnit, chosenUnit;
-
 		// Update our UnitProvider
 		myUnitProvider = null;
 		if (aUnitProvider instanceof DecimalUnitProvider)
-			myUnitProvider = (DecimalUnitProvider)aUnitProvider;
+			myUnitProvider = (DecimalUnitProvider) aUnitProvider;
 
 		// Sync the GUI to the state of the aEditable
-		decimalPlaces = 0;
-		forceFullLabel = false;
-		unitList = null;
-		protoUnit = null;
+		var decimalPlaces = 0;
+		var forceFullLabel = false;
+		List<Unit> unitL = null;
+		Unit protoUnit = null;
 		if (myUnitProvider != null)
 		{
 			decimalPlaces = myUnitProvider.getDecimalPlaces();
 			forceFullLabel = myUnitProvider.getForceFullLabel();
-			unitList = myUnitProvider.getProtoUnitList();
+			unitL = myUnitProvider.getProtoUnitList();
 			protoUnit = myUnitProvider.getProtoUnit();
 		}
 
@@ -77,9 +88,9 @@ public class DecimalUnitPanel extends EditorPanel implements ActionListener
 		decimalPlacesNF.setValue(decimalPlaces);
 		forceLongUnitsCB.setSelected(forceFullLabel);
 
-		chosenUnit = null;
+		Unit chosenUnit = null;
 		unitBox.removeAllItems();
-		for (Unit aUnit : unitList)
+		for (Unit aUnit : unitL)
 		{
 			unitBox.addItem(aUnit);
 			if (aUnit == protoUnit)
@@ -97,10 +108,8 @@ public class DecimalUnitPanel extends EditorPanel implements ActionListener
 	 */
 	private void buildGuiArea()
 	{
-		UnitProvider countUP;
-
 		setLayout(new MigLayout("", "0[right][][grow]0", "0[][]0[]0"));
-		countUP = new ConstUnitProvider(new NumberUnit("", "", 1.0, new DecimalFormat("###,###,###,###,##0")));
+		var countUP = new ConstUnitProvider(new NumberUnit("", "", 1.0, new DecimalFormat("###,###,###,###,##0")));
 
 		// Unit area
 		unitL = new JLabel("Unit:");
@@ -109,8 +118,9 @@ public class DecimalUnitPanel extends EditorPanel implements ActionListener
 		add("growx,span,wrap", unitBox);
 
 		// DecimalPlaces area
+		var tmpRange = Range.closed(0.0, 9.0);
 		decimalPlacesL = new JLabel("Decimal Places:");
-		decimalPlacesNF = new GNumberField(this, countUP, 0, 9);
+		decimalPlacesNF = new GNumberField(this, countUP, tmpRange);
 		add("span 2", decimalPlacesL);
 		add("growx,span 1,wrap", decimalPlacesNF);
 
@@ -124,16 +134,13 @@ public class DecimalUnitPanel extends EditorPanel implements ActionListener
 	 */
 	private void updateGui()
 	{
-		Unit protoUnit;
-		boolean isEnabled;
-
 		// Need a valid UnitProvider
 		if (myUnitProvider == null)
 			return;
 
 		// Synch the gui components
-		protoUnit = unitBox.getChosenItem();
-		isEnabled = (protoUnit instanceof NumberUnit);
+		var protoUnit = unitBox.getChosenItem();
+		var isEnabled = (protoUnit instanceof NumberUnit);
 		forceLongUnitsCB.setEnabled(isEnabled);
 	}
 
@@ -142,14 +149,10 @@ public class DecimalUnitPanel extends EditorPanel implements ActionListener
 	 */
 	private void updateModel()
 	{
-		Unit protoUnit;
-		int decimalPlaces;
-		boolean forceLongUnits;
-
 		// Get the gui configuration
-		protoUnit = unitBox.getChosenItem();
-		decimalPlaces = decimalPlacesNF.getValueAsInt(0);
-		forceLongUnits = forceLongUnitsCB.isSelected();
+		var protoUnit = unitBox.getChosenItem();
+		var decimalPlaces = decimalPlacesNF.getValueAsInt(0);
+		var forceLongUnits = forceLongUnitsCB.isSelected();
 
 		// Update the UnitProvider
 		myUnitProvider.activate(protoUnit, decimalPlaces, forceLongUnits);

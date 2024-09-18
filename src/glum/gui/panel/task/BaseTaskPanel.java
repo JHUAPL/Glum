@@ -1,3 +1,16 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.gui.panel.task;
 
 import java.awt.Component;
@@ -11,11 +24,14 @@ import glum.task.Task;
 import glum.util.WallTimer;
 
 /**
- * Abstract TaskPanel that handles all of the state vars used to maintain the Task interface.
+ * Abstract GUI component that provides an implementation of the {@link Task} interface.
+ *
+ * @author lopeznr1
  */
 public abstract class BaseTaskPanel extends GlassPanel implements Task
 {
 	// State vars
+	protected boolean isAborted;
 	protected boolean isActive;
 	protected String infoMsgFrag;
 	protected double mProgress;
@@ -31,10 +47,14 @@ public abstract class BaseTaskPanel extends GlassPanel implements Task
 	protected GLabel statusL;
 	protected JTextArea infoTA;
 
+	/**
+	 * Standard Constructor
+	 */
 	public BaseTaskPanel(Component aParent)
 	{
 		super(aParent);
 
+		isAborted = false;
 		isActive = true;
 		infoMsgFrag = null;
 		mProgress = 0;
@@ -66,15 +86,27 @@ public abstract class BaseTaskPanel extends GlassPanel implements Task
 	public void abort()
 	{
 		mTimer.stop();
+		isAborted = true;
 		isActive = false;
-		Runnable tmpRunnable = () -> updateGui();
-		SwingUtilities.invokeLater(tmpRunnable);
+		SwingUtilities.invokeLater(() -> updateGui());
 	}
 
 	@Override
-	public void infoAppend(String aMsg)
+	public boolean isAborted()
 	{
-		infoUpdateForce(aMsg);
+		return isAborted;
+	}
+
+	@Override
+	public boolean isActive()
+	{
+		return isActive;
+	}
+
+	@Override
+	public void logReg(String aFmtMsg, Object... aObjArr)
+	{
+		logRegUpdateForce(aFmtMsg, aObjArr);
 
 		// Reset the dynamic vars
 		infoMsgFrag = null;
@@ -82,19 +114,19 @@ public abstract class BaseTaskPanel extends GlassPanel implements Task
 	}
 
 	@Override
-	public void infoAppendln(String aMsg)
+	public void logRegln(String aFmtMsg, Object... aObjArr)
 	{
-		infoAppend(aMsg + '\n');
+		logReg(aFmtMsg + '\n', aObjArr);
 	}
 
 	@Override
-	public void infoUpdate(String aMsg)
+	public void logRegUpdate(String aFmtMsg, Object... aObjArr)
 	{
 		// Bail if it is not time to update our UI
 		if (isTimeForUpdate() == false)
 			return;
 
-		infoUpdateForce(aMsg);
+		logRegUpdateForce(aFmtMsg, aObjArr);
 	}
 
 	@Override
@@ -106,6 +138,7 @@ public abstract class BaseTaskPanel extends GlassPanel implements Task
 	@Override
 	public void reset()
 	{
+		isAborted = false;
 		isActive = true;
 		infoMsgFrag = null;
 		mProgress = 0;
@@ -117,8 +150,7 @@ public abstract class BaseTaskPanel extends GlassPanel implements Task
 		if (infoTA != null)
 			infoTA.setText("");
 
-		Runnable tmpRunnable = () -> updateGui();
-		SwingUtilities.invokeLater(tmpRunnable);
+		SwingUtilities.invokeLater(() -> updateGui());
 	}
 
 	@Override
@@ -130,14 +162,13 @@ public abstract class BaseTaskPanel extends GlassPanel implements Task
 		if (isTimeForUpdate() == false && aProgress < 1.0)
 			return;
 
-		Runnable tmpRunnable = () -> updateGui();
-		SwingUtilities.invokeLater(tmpRunnable);
+		SwingUtilities.invokeLater(() -> updateGui());
 	}
 
 	@Override
-	public void setProgress(int currVal, int maxVal)
+	public void setProgress(int aCurrVal, int aMaxVal)
 	{
-		setProgress((currVal + 0.0) / maxVal);
+		setProgress((aCurrVal + 0.0) / aMaxVal);
 	}
 
 	@Override
@@ -147,10 +178,10 @@ public abstract class BaseTaskPanel extends GlassPanel implements Task
 	}
 
 	@Override
-	public void setTabSize(int numSpaces)
+	public void setTabSize(int aNumSpaces)
 	{
 		if (infoTA != null)
-			infoTA.setTabSize(numSpaces);
+			infoTA.setTabSize(aNumSpaces);
 	}
 
 	@Override
@@ -168,14 +199,7 @@ public abstract class BaseTaskPanel extends GlassPanel implements Task
 		if (isTimeForUpdate() == false)
 			return;
 
-		Runnable tmpRunnable = () -> updateGui();
-		SwingUtilities.invokeLater(tmpRunnable);
-	}
-
-	@Override
-	public boolean isActive()
-	{
-		return isActive;
+		SwingUtilities.invokeLater(() -> updateGui());
 	}
 
 	/**
@@ -201,7 +225,7 @@ public abstract class BaseTaskPanel extends GlassPanel implements Task
 	/**
 	 * Utility method that does the actual updating of the previous info text with aMsg
 	 */
-	protected void infoUpdateForce(String aMsg)
+	protected void logRegUpdateForce(String aFmtMsg, Object... aObjArr)
 	{
 		int end, start;
 		int currLC;
@@ -209,6 +233,8 @@ public abstract class BaseTaskPanel extends GlassPanel implements Task
 		// Bail if there is no info area
 		if (infoTA == null)
 			return;
+
+		String tmpMsg = String.format(aFmtMsg, aObjArr);
 
 		// Update the old message
 		if (infoMsgFrag != null)
@@ -219,18 +245,18 @@ public abstract class BaseTaskPanel extends GlassPanel implements Task
 			{
 				end = infoTA.getLineEndOffset(infoTA.getLineCount() - 1);
 				start = end - infoMsgFrag.length();
-				infoTA.replaceRange(aMsg, start, end);
+				infoTA.replaceRange(tmpMsg, start, end);
 			}
-			catch(Exception aExp)
+			catch (Exception aExp)
 			{
-				System.out.println("infoMsgFrag:" + infoMsgFrag.length() + " start: " + start + " end:" + end);
+				System.err.println("infoMsgFrag:" + infoMsgFrag.length() + " start: " + start + " end:" + end);
 				throw new RuntimeException(aExp);
 			}
 		}
 		// Just append the message
 		else
 		{
-			infoTA.append(aMsg);
+			infoTA.append(tmpMsg);
 
 			// Trim the buffer if we exceed our maxLC
 			if (maxLC > 0)
@@ -245,9 +271,9 @@ public abstract class BaseTaskPanel extends GlassPanel implements Task
 						end = infoTA.getLineEndOffset(currLC - maxLC);
 						infoTA.replaceRange("", start, end);
 					}
-					catch(Exception aExp)
+					catch (Exception aExp)
 					{
-						System.out.println("currLC:" + currLC + " maxLC:" + maxLC + " start: " + start + " end:" + end);
+						System.err.println("currLC:" + currLC + " maxLC:" + maxLC + " start: " + start + " end:" + end);
 						throw new RuntimeException(aExp);
 					}
 				}
@@ -255,7 +281,7 @@ public abstract class BaseTaskPanel extends GlassPanel implements Task
 		}
 
 		// Save off the new dynamic message fragment
-		infoMsgFrag = aMsg;
+		infoMsgFrag = tmpMsg;
 
 //		timerL.setValue(mTimer.getTotal());
 //		SwingUtilities.invokeLater(new FunctionRunnable(timerL, "updateGui"));

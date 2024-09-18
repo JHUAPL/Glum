@@ -1,15 +1,40 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.gui.document;
 
-import javax.swing.text.*;
 import javax.swing.JTextField;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
 
-import glum.gui.GuiUtil;
+import glum.io.ParseUtil;
 
+/**
+ * Implementation of {@link BaseNumberDocument}.
+ *
+ * @author lopeznr1
+ */
 public class NumberDocument extends BaseNumberDocument
 {
-	protected boolean allowFloats;
-//	protected NumberUnit myUnit;	
+	// Constants
+	private final String ValidPosDigitStr = "0123456789";
+	private final String ValidNegDigitStr = "+-0123456789";
+	private final String ValidFractStr = "+-0123456789e.";
 
+	protected boolean allowFloats;
+//	protected NumberUnit myUnit;
+
+	/** Standard Constructor */
 	public NumberDocument(JTextField aOwnerTF, boolean aFormalizeDoc)
 	{
 		super(aOwnerTF, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
@@ -37,6 +62,28 @@ public class NumberDocument extends BaseNumberDocument
 		// Insanity check
 		if (str == null)
 			return;
+
+		// Change to allow user to enter any valid single character to be input. Note that the
+		// NumberDocument is used primary by GNumberField and as such invalid input will be
+		// colored with the "fail" color.
+		if (str.length() == 1)
+		{
+			if (allowFloats == false && minVal >= 0 && ValidPosDigitStr.contains(str) == true)
+			{
+				super.insertString(offs, str, a);
+				return;
+			}
+			else if (allowFloats == false && minVal < 0 && ValidNegDigitStr.contains(str) == true)
+			{
+				super.insertString(offs, str, a);
+				return;
+			}
+			else if (allowFloats == true && ValidFractStr.contains(str) == true)
+			{
+				super.insertString(offs, str, a);
+				return;
+			}
+		}
 
 		// Special cases
 		aChar = str.charAt(0);
@@ -76,13 +123,6 @@ public class NumberDocument extends BaseNumberDocument
 		if (str.contains(".") == true && allowFloats == false)
 			throw new BadLocationException("Only integers are allowed.", offs);
 
-		// Ensure we do not exceed number of columns
-		if (numAvailCols > 0)
-		{
-			if (offs + str.length() >= numAvailCols)
-				throw new BadLocationException("Too many characters to insert.", offs);
-		}
-
 		// Form the resultant string
 		bStr = "";
 		eStr = "";
@@ -92,7 +132,7 @@ public class NumberDocument extends BaseNumberDocument
 		resultStr = bStr + str + eStr;
 
 		// Ensure the resultant is sensical
-		aVal = GuiUtil.readDouble(resultStr, Double.NaN);
+		aVal = ParseUtil.readDouble(resultStr, Double.NaN);
 		if (Double.isNaN(aVal) == true)
 			throw new BadLocationException("Nonsensical number.", offs);
 

@@ -1,25 +1,39 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.filter;
-
-import glum.zio.*;
 
 import java.io.IOException;
 
+import glum.zio.*;
+
 /**
- * Abstract filter which is used to filter a single value between the specified min/max ranges. The only code to write
- * is the isValid() method and to call the appropriate Constructor. In the isValid() method, you should delegate filter
- * logic to the method testIsValid() with the quantity of interest, and return the result from the method call.
+ * Abstract {@link Filter} which is used to filter a single value between the specified min/max ranges. The only code to
+ * write is the isValid() method. In the isValid() method, you should delegate filter logic to the method testIsValid()
+ * with the quantity of interest, and return the result from the method call.
+ *
+ * @author lopeznr1
+ *
+ * @param <G1>
  */
-public abstract class RangeFilter<G1> implements ZioObj, Filter<G1>
+public abstract class RangeFilter<G1> implements Filter<G1>, ZioObj
 {
+	// State vars
 	private boolean isEnabled;
 	private boolean useMin, useMax;
 	private double minValue, maxValue;
 
-	/**
-	 * @param aBinCode
-	 *           Unique identifier used during serialization. The value specified here should not collide with any other
-	 *           codes for which there is serialization.
-	 */
+	/** Standard Constructor */
 	public RangeFilter()
 	{
 		isEnabled = false;
@@ -38,7 +52,7 @@ public abstract class RangeFilter<G1> implements ZioObj, Filter<G1>
 	public boolean getUseMax() { return useMax; }
 	public double getMinValue() { return minValue; }
 	public double getMaxValue() { return maxValue; }
-	
+
 	public void setIsEnabled(boolean aBool) { isEnabled = aBool; }
 	public void setUseMin(boolean aBool) { useMin = aBool; }
 	public void setUseMax(boolean aBool) { useMax = aBool; }
@@ -61,11 +75,9 @@ public abstract class RangeFilter<G1> implements ZioObj, Filter<G1>
 	@Override
 	public void zioRead(ZinStream aStream) throws IOException
 	{
-		byte bSwitch;
-
 		aStream.readVersion(0);
 
-		bSwitch = aStream.readByte();
+		byte bSwitch = aStream.readByte();
 		isEnabled = (bSwitch & 0x1) != 0;
 		useMin = (bSwitch & 0x2) != 0;
 		useMax = (bSwitch & 0x4) != 0;
@@ -80,11 +92,9 @@ public abstract class RangeFilter<G1> implements ZioObj, Filter<G1>
 	@Override
 	public void zioWrite(ZoutStream aStream) throws IOException
 	{
-		byte bSwitch;
-
 		aStream.writeVersion(0);
 
-		bSwitch = 0;
+		byte bSwitch = 0;
 		if (isEnabled == true)
 			bSwitch |= 0x1;
 		if (useMin == true)

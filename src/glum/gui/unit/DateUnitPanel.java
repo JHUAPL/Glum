@@ -1,39 +1,48 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.gui.unit;
 
 import java.awt.Dimension;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.util.List;
-import java.util.TimeZone;
+import java.awt.event.*;
+import java.util.*;
 
-import javax.swing.*;
+import javax.swing.JLabel;
+import javax.swing.JRadioButton;
 import javax.swing.table.DefaultTableCellRenderer;
-
-import com.google.common.collect.Lists;
 
 import glum.database.QueryItem;
 import glum.gui.GuiUtil;
-import glum.gui.component.GComboBox;
-import glum.gui.component.GLabel;
-import glum.gui.component.GTextField;
+import glum.gui.component.*;
 import glum.gui.document.CharDocument;
-import glum.gui.panel.itemList.ItemHandler;
 import glum.gui.panel.itemList.ItemListPanel;
 import glum.gui.panel.itemList.StaticItemProcessor;
 import glum.gui.panel.itemList.query.QueryComposer;
 import glum.gui.panel.itemList.query.QueryItemHandler;
-import glum.unit.DateUnit;
-import glum.unit.DateUnitProvider;
-import glum.unit.UnitProvider;
-
+import glum.unit.*;
 import net.miginfocom.swing.MigLayout;
 
-public class DateUnitPanel extends EditorPanel implements ActionListener
+/**
+ * Panel that allows the user to view and configure a {@link DateUnitProvider}.
+ *
+ * @author lopeznr1
+ */
+public class DateUnitPanel extends EditorPanel implements ActionListener, ItemListener
 {
 	// Constants
 	// @formatter:off
 	public static final String[][] DescriptionArr = {
-		{"G", "Era", "AD"}, 
+		{"G", "Era", "AD"},
 		{"y", "Year", "1996"},
 		{"M", "Month in year", "Jul; 07"},
 		{"w", "Week in year", "27"},
@@ -56,7 +65,7 @@ public class DateUnitPanel extends EditorPanel implements ActionListener
 	private GComboBox<String> protoBox;
 	private GTextField custTF;
 	private GLabel exampleL;
-	private ItemListPanel<PlainRow> ruleLP;
+	private ItemListPanel<PlainRow, Lookup> ruleLP;
 	private DefaultTableCellRenderer plainRenderer;
 	private JLabel timeZoneL;
 	private GComboBox<TimeZone> timeZoneBox;
@@ -64,10 +73,9 @@ public class DateUnitPanel extends EditorPanel implements ActionListener
 	// State vars
 	private DateUnitProvider myUnitProvider;
 
+	/** Standard Constructor */
 	public DateUnitPanel()
 	{
-		super();
-
 		myUnitProvider = null;
 
 		buildGuiArea();
@@ -94,28 +102,33 @@ public class DateUnitPanel extends EditorPanel implements ActionListener
 	}
 
 	@Override
+	public void itemStateChanged(ItemEvent aEvent)
+	{
+		updateModel();
+		updateGui();
+
+		notifyListeners(this, ID_UPDATE, "unit.update");
+	}
+
+	@Override
 	public void setUnitProvider(UnitProvider aUnitProvider)
 	{
-		List<String> protoNameList;
-		DateUnit activeUnit;
-		TimeZone activeTimeZone;
-
 		// Update our UnitProvider
 		myUnitProvider = null;
 		if (aUnitProvider instanceof DateUnitProvider)
-			myUnitProvider = (DateUnitProvider)aUnitProvider;
+			myUnitProvider = (DateUnitProvider) aUnitProvider;
 
 		// Sync the GUI to the state of the aEditable
-		protoNameList = myUnitProvider.getProtoNameList();
+		var protoNameL = myUnitProvider.getProtoNameList();
 
-		activeUnit = myUnitProvider.getUnit();
-		activeTimeZone = activeUnit.getTimeZone();
+		var activeUnit = myUnitProvider.getUnit();
+		var activeTimeZone = activeUnit.getTimeZone();
 
 		// Synch the GUI with the UnitProvider
 		custTF.setValue(myUnitProvider.getCustomPattern());
 
 		protoBox.removeAllItems();
-		for (String aName : protoNameList)
+		for (String aName : protoNameL)
 			protoBox.addItem(aName);
 
 		protoBox.setChosenItem(myUnitProvider.getProtoUnit().getConfigName());
@@ -142,12 +155,6 @@ public class DateUnitPanel extends EditorPanel implements ActionListener
 	 */
 	private void buildGuiArea()
 	{
-		CharDocument charDoc;
-		QueryComposer<Lookup> aComposer;
-		ItemHandler<PlainRow> itemHandler;
-		StaticItemProcessor<PlainRow> itemProcessor;
-		int targH;
-
 		setLayout(new MigLayout("", "0[left][grow]0", "0[][][][][][]0[grow]0"));
 
 		// Example area
@@ -158,18 +165,21 @@ public class DateUnitPanel extends EditorPanel implements ActionListener
 		add(GuiUtil.createDivider(), "growx,h 4!,span,wrap");
 
 		// Specification area
-		typeRB = GuiUtil.createJRadioButton("Named:", this);
+		typeRB = GuiUtil.createJRadioButton(this, "Named:");
 		protoBox = new GComboBox<String>(this);
 		add("span 1", typeRB);
 		add("growx,span,wrap", protoBox);
 
 		// Custom area
-		custRB = GuiUtil.createJRadioButton("Custom:", this);
+		custRB = GuiUtil.createJRadioButton(this, "Custom:");
 		custTF = new GTextField(this);
-		charDoc = new CharDocument(custTF, "GyMwWDdEaHhmsSzZ :|\\/-,[](){}<>;.", true);
+		var charDoc = new CharDocument(custTF, "GyMwWDdEaHhmsSzZ :|\\/-,[](){}<>;.", true);
 		custTF.setDocument(charDoc);
 		add("span 1", custRB);
 		add("growx,span,wrap", custTF);
+
+		// Link the radio buttons
+		GuiUtil.linkRadioButtons(custRB, typeRB);
 
 		// TimeZone area
 		timeZoneL = new JLabel("TimeZone:");
@@ -180,29 +190,25 @@ public class DateUnitPanel extends EditorPanel implements ActionListener
 		add("span 1", timeZoneL);
 		add("growx,span,w 0:100:,wrap", timeZoneBox);
 
-		// Link the radio buttons
-		GuiUtil.linkRadioButtons(custRB, typeRB);
-
 		// Rules table
-		List<PlainRow> itemList;
-		itemList = Lists.newLinkedList();
+		var tmpItemL = new ArrayList<PlainRow>();
 		for (String[] aRow : DescriptionArr)
-			itemList.add(new PlainRow(aRow[0], aRow[1], aRow[2]));
+			tmpItemL.add(new PlainRow(aRow[0], aRow[1], aRow[2]));
 
-		aComposer = new QueryComposer<Lookup>();
-		aComposer.addAttribute(Lookup.Key, String.class, "Key", "Key");
-		aComposer.addAttribute(Lookup.Comp, String.class, "Date Comp.", "Time Zone: General");
-		aComposer.addAttribute(Lookup.Example, String.class, "Example", "Eastern; EST");
-		aComposer.getItem(Lookup.Example).maxSize = 5000;
+		var tmpComposer = new QueryComposer<Lookup>();
+		tmpComposer.addAttribute(Lookup.Key, String.class, "Key", "Key");
+		tmpComposer.addAttribute(Lookup.Comp, String.class, "Date Comp.", "Time Zone: General");
+		tmpComposer.addAttribute(Lookup.Example, String.class, "Example", "Eastern; EST");
+		tmpComposer.getItem(Lookup.Example).maxSize = 5000;
 		plainRenderer = new DefaultTableCellRenderer();
 		for (Lookup aEnum : Lookup.values())
-			aComposer.setRenderer(aEnum, plainRenderer);
+			tmpComposer.setRenderer(aEnum, plainRenderer);
 
-		itemHandler = new QueryItemHandler<PlainRow>(aComposer);
-		itemProcessor = new StaticItemProcessor<PlainRow>(itemList);
+		var tmpIH = new QueryItemHandler<PlainRow, Lookup>();
+		var tmpIP = new StaticItemProcessor<>(tmpItemL);
 
-		targH = ((custTF.getPreferredSize().height - 2) * DescriptionArr.length) + 2;
-		ruleLP = new ItemListPanel<PlainRow>(itemHandler, itemProcessor, false, false);
+		var targH = ((custTF.getPreferredSize().height - 2) * DescriptionArr.length) + 2;
+		ruleLP = new ItemListPanel<>(tmpIH, tmpIP, tmpComposer, false);
 		ruleLP.setPreferredSize(new Dimension(ruleLP.getPreferredSize().width, targH));
 		ruleLP.setSortingEnabled(false);
 		ruleLP.setEnabled(false);
@@ -214,13 +220,11 @@ public class DateUnitPanel extends EditorPanel implements ActionListener
 	 */
 	private void updateModel()
 	{
-		TimeZone timeZone;
-
 		// Need a valid UnitProvider
 		if (myUnitProvider == null)
 			return;
 
-		timeZone = timeZoneBox.getChosenItem();
+		var timeZone = timeZoneBox.getChosenItem();
 		if (typeRB.isSelected() == true)
 			myUnitProvider.activateProto(timeZone, protoBox.getChosenItem());
 		else
@@ -232,24 +236,19 @@ public class DateUnitPanel extends EditorPanel implements ActionListener
 	 */
 	private void updateGui()
 	{
-		DateUnit activeUnit;
-		String exampleStr;
-		boolean isEnabled;
-		long currTime;
-
-		isEnabled = custRB.isSelected();
+		var isEnabled = custRB.isSelected();
 		custTF.setEnabled(isEnabled);
 		protoBox.setEnabled(!isEnabled);
 //		itemLP.repaint();
 
 		// Retrieve the activeUnit
-		activeUnit = null;
+		var activeUnit = (DateUnit) null;
 		if (myUnitProvider != null)
 			activeUnit = myUnitProvider.getUnit();
 
 		// Update the example area
-		currTime = System.currentTimeMillis();
-		exampleStr = "";
+		var currTime = System.currentTimeMillis();
+		var exampleStr = "";
 		if (activeUnit != null)
 			exampleStr = activeUnit.getString(currTime);
 
@@ -258,15 +257,22 @@ public class DateUnitPanel extends EditorPanel implements ActionListener
 
 	/**
 	 * Helper classes to aide with setting up the info table
+	 *
+	 * @author lopeznr1
 	 */
 	enum Lookup
 	{
 		Key, Comp, Example
 	};
 
+	/**
+	 * Helper classes to aide with setting up the info table
+	 *
+	 * @author lopeznr1
+	 */
 	class PlainRow implements QueryItem<Lookup>
 	{
-		private String key, comp, example;
+		private final String key, comp, example;
 
 		public PlainRow(String aKey, String aComp, String aExample)
 		{
@@ -281,16 +287,16 @@ public class DateUnitPanel extends EditorPanel implements ActionListener
 			switch (aEnum)
 			{
 				case Key:
-				return key;
+					return key;
 
 				case Comp:
-				return comp;
+					return comp;
 
 				case Example:
-				return example;
+					return example;
 
 				default:
-				return null;
+					return null;
 			}
 
 		}

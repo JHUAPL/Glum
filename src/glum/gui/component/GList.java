@@ -1,21 +1,29 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.gui.component;
 
 import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import javax.swing.JComponent;
-import javax.swing.JList;
-import javax.swing.SwingUtilities;
+import java.util.*;
+
+import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
 import glum.gui.component.model.GListModel;
 import glum.gui.panel.generic.GenericCodes;
-
-import com.google.common.collect.Lists;
 
 public class GList<G1> extends JComponent implements GenericCodes, ListSelectionListener
 {
@@ -52,9 +60,7 @@ public class GList<G1> extends JComponent implements GenericCodes, ListSelection
 	 */
 	public G1 getSelectedItem()
 	{
-		int selectedIndex;
-
-		selectedIndex = refList.getSelectedIndex();
+		var selectedIndex = refList.getSelectedIndex();
 		if (selectedIndex == -1)
 			return null;
 
@@ -66,17 +72,14 @@ public class GList<G1> extends JComponent implements GenericCodes, ListSelection
 	 */
 	public List<G1> getSelectedItems()
 	{
-		ArrayList<G1> retList;
-		int[] indexArr;
+		var indexArr = refList.getSelectedIndices();
 
-		indexArr = refList.getSelectedIndices();
-
-		retList = Lists.newArrayList();
+		var retItemL = new ArrayList<G1>();
 		for (int aIndex : indexArr)
-			retList.add(refModel.getElementAt(aIndex));
+			retItemL.add(refModel.getElementAt(aIndex));
 
-		retList.trimToSize();
-		return retList;
+		retItemL.trimToSize();
+		return retItemL;
 	}
 
 	/**
@@ -104,17 +107,14 @@ public class GList<G1> extends JComponent implements GenericCodes, ListSelection
 	 */
 	public void setSelectedItems(List<G1> aItemList)
 	{
-		int[] idArr;
-		int c1;
-
 		// Ensure we are executed only on the proper thread
 		if (SwingUtilities.isEventDispatchThread() == false)
 			throw new RuntimeException("GList.selectItems() not executed on the AWT event dispatch thread.");
 
 		refList.removeListSelectionListener(this);
 
-		c1 = 0;
-		idArr = new int[aItemList.size()];
+		var c1 = 0;
+		var idArr = new int[aItemList.size()];
 		for (G1 aItem : aItemList)
 		{
 			idArr[c1] = refModel.indexOf(aItem);

@@ -1,15 +1,32 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.zio.stream;
-
-import glum.zio.ZoutStream;
 
 import java.io.IOException;
 
 import com.google.common.base.Charsets;
 
+import glum.zio.ZoutStream;
+import glum.zio.util.ZioUtil;
+
 /**
- * ZoutStream used for debugging. This is useful when trying to determine when and where a specific byte is being written out.
- * <P>
- * When the specified nth byte has been written this object will throw an IOException.
+ * {@link ZoutStream} used for debugging. This is useful when trying to determine when and where a specific byte is
+ * being written out.
+ * <p>
+ * When the specified nth byte has been written this object will throw an {@link IOException}.
+ *
+ * @author lopeznr1
  */
 public class DebugZoutStream implements ZoutStream
 {
@@ -17,8 +34,10 @@ public class DebugZoutStream implements ZoutStream
 	private int failByteCnt;
 
 	/**
+	 * Standard Constructor
+	 *
 	 * @param aFailByteCnt
-	 *           The nth byte that when written will cause an Exception to be raised.
+	 *        The nth byte that when written will cause an {@link IOException} to be raised.
 	 */
 	public DebugZoutStream(int aFailByteCnt)
 	{
@@ -74,6 +93,20 @@ public class DebugZoutStream implements ZoutStream
 		byteCnt += 2;
 		if (byteCnt >= failByteCnt)
 			throwBadByteWrittenException();
+	}
+
+	@Override
+	public <G1 extends Enum<?>> void writeEnum(G1 aEnum) throws IOException
+	{
+		if (aEnum == null)
+		{
+			writeVersion(0);
+			return;
+		}
+
+		writeVersion(1);
+		int ordinal = aEnum.ordinal();
+		ZioUtil.writeCompactInt(this, ordinal);
 	}
 
 	@Override
@@ -146,7 +179,8 @@ public class DebugZoutStream implements ZoutStream
 
 		// Ensure the string size is less than 0x00FFFF
 		if (size >= 0x00FFFF)
-			throw new RuntimeException("Transformed UTF-8 string is too large! Max size: " + (0x00FFFF - 1) + "  Curr size:" + size);
+			throw new RuntimeException(
+					"Transformed UTF-8 string is too large! Max size: " + (0x00FFFF - 1) + "  Curr size:" + size);
 
 		byteCnt += 2 + size;
 		if (byteCnt >= failByteCnt)

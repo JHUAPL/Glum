@@ -1,21 +1,29 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.gui.dock;
 
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.Collection;
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.SwingUtilities;
-import javax.swing.border.BevelBorder;
+import java.util.ArrayList;
+
+import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
-//import echo.gui.LookUp;
-
-import com.google.common.collect.Lists;
-
+import bibliothek.gui.DockFrontend;
 import glum.database.QueryItem;
 import glum.gui.FocusUtil;
 import glum.gui.GuiUtil;
@@ -25,24 +33,27 @@ import glum.gui.panel.itemList.ItemListPanel;
 import glum.gui.panel.itemList.StaticItemProcessor;
 import glum.gui.panel.itemList.query.QueryComposer;
 import glum.gui.panel.itemList.query.QueryItemHandler;
-
-import bibliothek.gui.DockFrontend;
-
 import net.miginfocom.swing.MigLayout;
 
+/**
+ * UI component that provides a listing of all docking configurations.
+ *
+ * @author lopeznr1
+ */
 public class FrontendManageConfigPanel extends GlassPanel implements ActionListener, ListSelectionListener
 {
 	// GUI vars
-	protected ItemListPanel<ConfigItem> listPanel;
-	protected JButton deleteB, closeB;
+	private ItemListPanel<ConfigItem, LookUp> listPanel;
+	private JButton deleteB, closeB;
 
 	// State vars
-	protected DockFrontend refFrontend;
-	protected StaticItemProcessor<ConfigItem> myItemProcessor;
+	private DockFrontend refFrontend;
+	private StaticItemProcessor<ConfigItem> myItemProcessor;
 
 	/**
-	 * Constructor
-	 * @param aFrontend 
+	 * Standard Constructor
+	 *
+	 * @param aFrontend
 	 */
 	public FrontendManageConfigPanel(Component aParent, DockFrontend aFrontend)
 	{
@@ -53,8 +64,8 @@ public class FrontendManageConfigPanel extends GlassPanel implements ActionListe
 
 		// Build the actual GUI
 		buildGuiArea();
-		setPreferredSize(new Dimension(250, 300));//TODO:getPreferredSize().height));
-		
+		setPreferredSize(new Dimension(250, 300));// TODO:getPreferredSize().height));
+
 		// Set up keyboard short cuts
 		FocusUtil.addAncestorKeyBinding(this, "ESCAPE", new ClickAction(closeB));
 		FocusUtil.addAncestorKeyBinding(this, "ENTER", new ClickAction(closeB));
@@ -65,19 +76,16 @@ public class FrontendManageConfigPanel extends GlassPanel implements ActionListe
 	public void setVisible(boolean aBool)
 	{
 		resetGui();
-		
+
 		super.setVisible(aBool);
 	}
 
 	@Override
-	public void actionPerformed(ActionEvent e)
+	public void actionPerformed(ActionEvent aEvent)
 	{
-		Object source;
-		ConfigItem chosenItem;
+		var chosenItem = listPanel.getSelectedItem();
 
-		chosenItem = listPanel.getSelectedItem();
-
-		source = e.getSource();
+		var source = aEvent.getSource();
 		if (source == deleteB)
 		{
 			refFrontend.delete(chosenItem.getName());
@@ -94,7 +102,7 @@ public class FrontendManageConfigPanel extends GlassPanel implements ActionListe
 	{
 		if (aEvent.getValueIsAdjusting() == true)
 			return;
-		
+
 		updateGui();
 	}
 
@@ -103,34 +111,27 @@ public class FrontendManageConfigPanel extends GlassPanel implements ActionListe
 	 */
 	private void buildGuiArea()
 	{
-		JLabel tmpL;
-		QueryItemHandler<ConfigItem> aItemHandler;
-		QueryComposer<LookUp> aComposer;
-
-		
 		setLayout(new MigLayout("", "[grow][][]", "[][grow][]"));
-		
-		tmpL = new JLabel("Select configuration:", JLabel.CENTER);
-		add(tmpL, "growx,span 4,wrap");
-		
-		// Construct the actual table panel
-		aComposer = new QueryComposer<LookUp>();
-		aComposer.addAttribute(LookUp.Name, String.class, "Configuration", null);
 
-		myItemProcessor = new StaticItemProcessor<ConfigItem>();
-		aItemHandler = new QueryItemHandler<ConfigItem>(aComposer);
-		listPanel = new ItemListPanel<ConfigItem>(aItemHandler, myItemProcessor, false, true);
+		var tmpL = new JLabel("Select configuration:", JLabel.CENTER);
+		add(tmpL, "growx,span 4,wrap");
+
+		// Construct the actual table panel
+		var tmpComposer = new QueryComposer<LookUp>();
+		tmpComposer.addAttribute(LookUp.Name, String.class, "Configuration", null);
+
+		myItemProcessor = new StaticItemProcessor<>();
+		var tmpIH = new QueryItemHandler<ConfigItem, LookUp>();
+		listPanel = new ItemListPanel<>(tmpIH, myItemProcessor, tmpComposer, true);
 		listPanel.addListSelectionListener(this);
 		add(listPanel, "growx,growy,span 4,wrap");
-		
+
 		// Control area
 		deleteB = GuiUtil.createJButton("Delete", this);
 		closeB = GuiUtil.createJButton("Close", this);
 
-		add(deleteB, "skip 1,span 1");
-		add(closeB, "span 1");
-		
-		setBorder(new BevelBorder(BevelBorder.RAISED));
+		add(deleteB, "skip 1");
+		add(closeB, "");
 	}
 
 	/**
@@ -138,31 +139,19 @@ public class FrontendManageConfigPanel extends GlassPanel implements ActionListe
 	 */
 	private void resetGui()
 	{
-		Collection<String> strList;
-		Collection<ConfigItem> itemList;
-
-		itemList = Lists.newLinkedList();
-
-		strList = refFrontend.getSettings();
-		for (String aStr : strList)
+		var itemL = new ArrayList<ConfigItem>();
+		var strL = refFrontend.getSettings();
+		for (String aStr : strL)
 		{
 			// Add only non reserved items
 			if (aStr.charAt(0) != '.')
-				itemList.add(new ConfigItem(aStr));
+				itemL.add(new ConfigItem(aStr));
 		}
-		
-		myItemProcessor.setItems(itemList);
-				
-		// TODO: Ugly code: Should be able to just call updateGui but can not
-		SwingUtilities.invokeLater(new Runnable()
-		{
-			
-			@Override
-			public void run()
-			{
-				updateGui();
-			}
-		});
+
+		myItemProcessor.setItems(itemL);
+
+		// TODO: Should be able to just call updateGui but can not
+		SwingUtilities.invokeLater(() -> updateGui());
 	}
 
 	/**
@@ -170,58 +159,46 @@ public class FrontendManageConfigPanel extends GlassPanel implements ActionListe
 	 */
 	private void updateGui()
 	{
-		ConfigItem chosenItem;
-		boolean isEnabled;
-
-		chosenItem = listPanel.getSelectedItem();
-
+		var chosenItem = listPanel.getSelectedItem();
 		if (chosenItem != null)
 			refFrontend.load(chosenItem.getName());
-		
-		isEnabled = chosenItem != null;
+
+		var isEnabled = chosenItem != null;
 		deleteB.setEnabled(isEnabled);
-		
+
 		// Ensure we have the focus.
-//listPanel.requestFocusInWindow();		
+//listPanel.requestFocusInWindow();
 		repaint();
 
-		// TODO: Ugly code: Not sure why need to request focus multiple times to ensure we regrab 
+		// TODO: Ugly code: Not sure why need to request focus multiple times to ensure we regrab
 		// the focus. This is particularly true when there are multiple DockStations located on different
 		// windows
-		SwingUtilities.invokeLater(new Runnable()
-		{
-			
+		SwingUtilities.invokeLater(new Runnable() {
+
 			@Override
 			public void run()
 			{
 				listPanel.getTable().requestFocus();
-				
-				SwingUtilities.invokeLater(new Runnable()
-				{
-					
-					@Override
-					public void run()
-					{
-						listPanel.getTable().requestFocus();
-					}
-				});
-				
-//				listPanel.getTable().getFocusCycleRootAncestor().setFocusCycleRoot(true);		
+
+				SwingUtilities.invokeLater(() -> listPanel.getTable().requestFocus());
+
+//				listPanel.getTable().getFocusCycleRootAncestor().setFocusCycleRoot(true);
 				listPanel.getTable().requestFocusInWindow();
 				repaint();
 			}
 		});
 	}
-	
-		
+
 	/**
-	 * Internal class only used to wrap named (string) settings into
-	 * a QueryItem 
+	 * Internal class only used to wrap named (string) settings into a QueryItem.
+	 *
+	 * @author lopeznr1
 	 */
 	class ConfigItem implements QueryItem<LookUp>
 	{
-		private String refName;
-		
+		// Attributes
+		private final String refName;
+
 		public ConfigItem(String aName)
 		{
 			refName = aName;
@@ -246,7 +223,7 @@ public class FrontendManageConfigPanel extends GlassPanel implements ActionListe
 		{
 			throw new UnsupportedOperationException();
 		}
-		
+
 	}
 
 }

@@ -1,18 +1,34 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.gui.misc;
 
-import java.awt.*;
+import java.awt.Component;
 import java.awt.event.*;
-import javax.swing.*;
-import javax.swing.table.*;
+
+import javax.swing.JTable;
+import javax.swing.UIManager;
+import javax.swing.table.JTableHeader;
+import javax.swing.table.TableCellRenderer;
 
 public class MultiStateCheckBoxHeader extends MultiStateCheckBox implements TableCellRenderer, MouseListener, MouseMotionListener
 {
 	// State vars
-	protected JTableHeader refHeader;
-	protected int column;
+	private JTableHeader refHeader;
+	private int column;
 
 	/**
-	 * Constructor
+	 * Standard Constructor
 	 */
 	public MultiStateCheckBoxHeader(JTable aTable, boolean is3StateCycle)
 	{
@@ -36,19 +52,14 @@ public class MultiStateCheckBoxHeader extends MultiStateCheckBox implements Tabl
 	 */
 	public int getAssociatedColumn(MouseEvent aEvent)
 	{
-		JTableHeader aHeader;
-		JTable aTable;
-		TableColumnModel aColumnModel;
-		int viewCol, refCol;
-
 		if (aEvent.getSource() instanceof JTableHeader == false)
 			return -1;
 
-		aHeader = (JTableHeader)aEvent.getSource();
-		aTable = aHeader.getTable();
-		aColumnModel = aTable.getColumnModel();
-		viewCol = aColumnModel.getColumnIndexAtX(aEvent.getX());
-		refCol = aTable.convertColumnIndexToModel(viewCol);
+		var tmpHeader = (JTableHeader)aEvent.getSource();
+		var tmpTable = tmpHeader.getTable();
+		var tmpColumnModel = tmpTable.getColumnModel();
+		var viewCol = tmpColumnModel.getColumnIndexAtX(aEvent.getX());
+		var refCol = tmpTable.convertColumnIndexToModel(viewCol);
 
 		return viewCol;
 	}

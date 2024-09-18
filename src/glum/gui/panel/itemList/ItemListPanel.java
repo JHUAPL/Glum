@@ -1,69 +1,110 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.gui.panel.itemList;
 
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.event.*;
-import java.util.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+
 import javax.swing.*;
-import javax.swing.event.*;
-import javax.swing.table.*;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+import javax.swing.table.TableColumn;
 
+import glum.gui.GuiExeUtil;
+import glum.gui.TableUtil;
 import glum.gui.component.GComboBox;
-import glum.gui.table.*;
-
-import com.google.common.collect.*;
+import glum.gui.panel.itemList.query.QueryComposer;
+import glum.gui.table.JTableScrolling;
+import glum.gui.table.TableSorter;
+import glum.item.*;
 import net.miginfocom.swing.MigLayout;
 
-public class ItemListPanel<G1> extends JPanel implements ActionListener, ListSelectionListener, ItemChangeListener
+/**
+ * UI component that will display a list of items as provided by the specified {@link ItemHandler} and
+ * {@link ItemProcessor}.
+ *
+ * @author lopeznr1
+ */
+public class ItemListPanel<G1, G2 extends Enum<?>> extends JPanel
+		implements ActionListener, ItemEventListener, ListSelectionListener
 {
-	// Gui components
-	protected JTable myTable;
-	protected JScrollPane tableScrollPane;
-	protected ItemListTableModel<G1> myTableModel;
-	protected TableSorter sortTableModel;
-	protected GComboBox<TableColumn> searchBox;
-	protected JTextField searchTF;
+	// Ref vars
+	private final ItemProcessor<G1> refItemProcessor;
+
+	// Gui vars
+	private JTable myTable;
+	private JScrollPane tableScrollPane;
+	private TableSorter sortTableModel;
+	private TableColumnHandler<G2> workTableColumnHandler;
+	private ItemListTableModel<G1, G2> viewTableModel;
+	private GComboBox<TableColumn> searchBox;
+	private JTextField searchTF;
 
 	// State vars
-	protected ItemHandler<G1> myItemHandler;
-	protected ItemProcessor<G1> myItemProcessor;
-	protected boolean updateNeeded;
+	private List<ListSelectionListener> listenerL;
+	private boolean updateNeeded;
 
-	// Communicator vars
-	protected List<ListSelectionListener> myListeners;
-
-	public ItemListPanel(ItemHandler<G1> aItemHandler, ItemProcessor<G1> aItemProcessor, boolean hasSearchBox, boolean supportsMultipleSelection)
+	/** Standard Constructor */
+	public ItemListPanel(ItemHandler<G1, G2> aItemHandler, ItemProcessor<G1> aItemProcessor, QueryComposer<G2> aComposer,
+			boolean aSupportsMultipleSelection)
 	{
-		// State vars
-		myItemHandler = aItemHandler;
-		myItemProcessor = aItemProcessor;
+		// Delegate
+		this(aItemHandler, aItemProcessor, aComposer, false, aSupportsMultipleSelection);
+	}
+
+	private ItemListPanel(ItemHandler<G1, G2> aItemHandler, ItemProcessor<G1> aItemProcessor,
+			QueryComposer<G2> aComposer, boolean aHasSearchBox, boolean aSupportsMultipleSelection)
+	{
+		refItemProcessor = aItemProcessor;
+
+		listenerL = new ArrayList<>();
 		updateNeeded = true;
 
-		// Communicator vars
-		myListeners = Lists.newLinkedList();
+		// Form the gui
+		buildGuiArea(aItemHandler, aComposer, aHasSearchBox, aSupportsMultipleSelection);
+		GuiExeUtil.executeOnceWhenShowing(myTable, () -> updateTable());
 
-		// Build the actual GUI
-		buildGuiArea(hasSearchBox, supportsMultipleSelection);
-
-		// Register for DataChange events and trigger the initial one
-		myItemProcessor.addItemChangeListener(this);
+		// Register for events of interest
+		refItemProcessor.addListener(this);
 	}
 
 	/**
-	 * addListSelectionListener
+	 * Registers a ListSelectionListener with this ItemListPanel.
 	 */
 	public synchronized void addListSelectionListener(ListSelectionListener aListener)
 	{
-		myListeners.add(aListener);
+		listenerL.add(aListener);
 	}
 
 	/**
-	 * removeListSelectionListener
+	 * Deregisters a ListSelectionListener with this ItemListPanel.
 	 */
-	public synchronized void removeListSelectionListener(ListSelectionListener aListener)
+	public synchronized void delListSelectionListener(ListSelectionListener aListener)
 	{
-		myListeners.remove(aListener);
+		listenerL.remove(aListener);
+	}
+
+	/**
+	 * Returns the backing {@link TableColumnHandler}.
+	 */
+	public TableColumnHandler<G2> getTableColumnHandler()
+	{
+		return workTableColumnHandler;
 	}
 
 	/**
@@ -75,35 +116,17 @@ public class ItemListPanel<G1> extends JPanel implements ActionListener, ListSel
 		myTable.getActionMap().put(aAction, aAction);
 	}
 
-	@Override
-	public void actionPerformed(ActionEvent e)
-	{
-		Object source;
-		TableColumn selectedItem;
-
-		// Determine the source
-		source = e.getSource();
-
-		if (source == searchTF || source == searchBox)
-		{
-			selectedItem = searchBox.getChosenItem();
-			selectNextItem(selectedItem, searchTF.getText());
-		}
-	}
-
 	/**
 	 * Returns the object located at the specified (view) row
 	 */
 	public synchronized G1 getItem(int aRow)
 	{
-		G1 aObj;
-
 		aRow = sortTableModel.modelIndex(aRow);
 		if (aRow == -1)
 			return null;
 
-		aObj = myTableModel.getRowItem(aRow);
-		return aObj;
+		var retObj = viewTableModel.getRowItem(aRow);
+		return retObj;
 	}
 
 	/**
@@ -111,13 +134,10 @@ public class ItemListPanel<G1> extends JPanel implements ActionListener, ListSel
 	 */
 	public synchronized G1 getSelectedItem()
 	{
-		G1 selectedObj;
-		int selectedRow;
-
 		// Ensure the table is up to date
 		updateTable();
 
-		selectedRow = myTable.getSelectedRow();
+		int selectedRow = myTable.getSelectedRow();
 		if (selectedRow == -1)
 			return null;
 
@@ -125,67 +145,40 @@ public class ItemListPanel<G1> extends JPanel implements ActionListener, ListSel
 		if (selectedRow == -1)
 			return null;
 
-		selectedObj = myTableModel.getRowItem(selectedRow);
+		G1 selectedObj = viewTableModel.getRowItem(selectedRow);
 		return selectedObj;
 	}
 
 	/**
-	 * getSelectedItems - Returns the list of selected items from the table
+	 * Returns the list of selected items from the table
 	 */
 	public synchronized List<G1> getSelectedItems()
 	{
-		List<G1> aList;
-		G1 selectedObj;
-		int[] selectedRows;
-		int selectedRow;
-
 		// Ensure the table is up to date
 		updateTable();
 
-		aList = Lists.newLinkedList();
-		selectedRows = myTable.getSelectedRows();
-		if (selectedRows != null)
+		// Transform from rows to items
+		var retItemL = new ArrayList<G1>();
+		int[] idxArr = myTable.getSelectedRows();
+		for (int aIdx : idxArr)
 		{
-			for (int aInt : selectedRows)
+			int tmpIdx = sortTableModel.modelIndex(aIdx);
+			if (tmpIdx != -1)
 			{
-				selectedRow = sortTableModel.modelIndex(aInt);
-				if (selectedRow != -1)
-				{
-					selectedObj = myTableModel.getRowItem(selectedRow);
-					aList.add(selectedObj);
-				}
+				G1 selectedObj = viewTableModel.getRowItem(tmpIdx);
+				retItemL.add(selectedObj);
 			}
 		}
 
-		return aList;
-	}
-
-	@Override
-	public void itemChanged()
-	{
-		// Mark the table as being outdated
-		updateNeeded = true;
-
-		// The advantage to the code below (as opposed to SwingUtilities.invokeLater() style) is
-		// that it is only updated when it absolutely is necessary. Thus if multiple updates come
-		// in before it is repainted they will be ignored. In the future this method may have an
-		// argument called isLazy which allow both styles of updating.
-		repaint();
+		return retItemL;
 	}
 
 	/**
-	 * This may be triggered indirectly via a network call after the method repaint() has been called. Do not call this
-	 * method from a non gui thread
+	 * Returns the associated SortTableModel
 	 */
-	@Override
-	public void paint(Graphics g)
+	public TableSorter getSortTableModel()
 	{
-		// Ensure the table is up to date
-		updateTable();
-
-		// Do the actual paint
-		if (g != null)
-			super.paint(g);
+		return sortTableModel;
 	}
 
 	/**
@@ -195,8 +188,6 @@ public class ItemListPanel<G1> extends JPanel implements ActionListener, ListSel
 	 */
 	public synchronized void selectItem(G1 aObj)
 	{
-		int chosenRow;
-
 		// Ensure we are executed only on the proper thread
 		if (SwingUtilities.isEventDispatchThread() == false)
 			throw new RuntimeException("ItemListPanel.selectItem() not executed on the AWT event dispatch thread.");
@@ -214,7 +205,7 @@ public class ItemListPanel<G1> extends JPanel implements ActionListener, ListSel
 		}
 		else
 		{
-			chosenRow = myTableModel.getRowIndex(aObj);
+			int chosenRow = viewTableModel.getRowIndex(aObj);
 			if (chosenRow != -1)
 			{
 				chosenRow = sortTableModel.viewIndex(chosenRow);
@@ -234,11 +225,44 @@ public class ItemListPanel<G1> extends JPanel implements ActionListener, ListSel
 	}
 
 	/**
+	 * Ensures that the specified item is within the view.
+	 */
+	public synchronized void scrollToItem(G1 aItem)
+	{
+		// Transform from item to row index (view)
+		int tmpRow = viewTableModel.getRowIndex(aItem);
+		if (tmpRow == -1)
+			return;
+
+		tmpRow = sortTableModel.viewIndex(tmpRow);
+
+		// Ensure the row is in the view
+		if (JTableScrolling.isRowVisible(myTable, tmpRow) == false)
+			JTableScrolling.centerRow(myTable, tmpRow);
+	}
+
+	/**
 	 * Sets the table bodies color to aColor
 	 */
 	public synchronized void setTableBodyColor(Color aColor)
 	{
 		tableScrollPane.getViewport().setBackground(aColor);
+	}
+
+	/**
+	 * Sets in the Comparator that will be used to sort the specified column.
+	 */
+	public void setSortComparator(int aColNum, Comparator<?> aComparator)
+	{
+		sortTableModel.setColumnIndexComparator(aColNum, aComparator);
+	}
+
+	/**
+	 * Sets in the Comparator that will be used to sort items of type aType.
+	 */
+	public void setSortComparator(Class<?> aType, Comparator<?> aComparator)
+	{
+		sortTableModel.setColumnClassComparator(aType, aComparator);
 	}
 
 	/**
@@ -250,6 +274,54 @@ public class ItemListPanel<G1> extends JPanel implements ActionListener, ListSel
 	}
 
 	@Override
+	public void actionPerformed(ActionEvent aEvent)
+	{
+		// Determine the source
+		var source = aEvent.getSource();
+		if (source == searchTF || source == searchBox)
+		{
+			TableColumn selectedItem = searchBox.getChosenItem();
+			selectNextItem(selectedItem, searchTF.getText());
+		}
+	}
+
+	@Override
+	public void handleItemEvent(Object aSource, ItemEventType aEventType)
+	{
+		// Time to update our selected items
+		if (aEventType == ItemEventType.ItemsSelected)
+			updateTableSelection();
+		// Nothing to do just a repaint is needed
+		else if (aEventType == ItemEventType.ItemsMutated)
+			myTable.repaint();
+		// Mark the table as being outdated
+		else if (aEventType == ItemEventType.ItemsChanged)
+			updateNeeded = true;
+
+		// The advantage to the code below (as opposed to SwingUtilities.invokeLater()
+		// style) is that it is only updated when it absolutely is necessary. Thus if
+		// multiple updates come in before it is repainted they will be ignored. In
+		// the future this method may have an argument called isLazy which allow both
+		// styles of updating.
+		repaint();
+	}
+
+	/**
+	 * This may be triggered indirectly via a network call after the method repaint() has been called. Do not call this
+	 * method from a non gui thread
+	 */
+	@Override
+	public void paint(Graphics g)
+	{
+		// Ensure the table is up to date
+		updateTable();
+
+		// Do the actual paint
+		if (g != null)
+			super.paint(g);
+	}
+
+	@Override
 	public void setEnabled(boolean aBool)
 	{
 		myTable.setEnabled(aBool);
@@ -258,6 +330,20 @@ public class ItemListPanel<G1> extends JPanel implements ActionListener, ListSel
 	@Override
 	public void valueChanged(ListSelectionEvent aEvent)
 	{
+		if (refItemProcessor instanceof ItemManager == false)
+		{
+			notifyListeners(aEvent);
+			return;
+		}
+
+		// TODO: All ItemProcessor may go away and we interface with ItemManager
+		var tmpManager = (ItemManager<G1>) refItemProcessor;
+
+		// Update the ItemManager's selection
+		tmpManager.delListener(this);
+		tmpManager.setSelectedItems(getSelectedItems());
+		tmpManager.addListener(this);
+
 		notifyListeners(aEvent);
 	}
 
@@ -272,51 +358,50 @@ public class ItemListPanel<G1> extends JPanel implements ActionListener, ListSel
 	/**
 	 * Forms the actual panel GUI
 	 */
-	private void buildGuiArea(boolean hasSearchBox, boolean supportsMultipleSelection)
+	private void buildGuiArea(ItemHandler<G1, G2> aItemHandler, QueryComposer<G2> aComposer, boolean aHasSearchBox,
+			boolean aSupportsMultipleSelection)
 	{
-		JLabel tmpL;
-
-		if (hasSearchBox == true)
+		if (aHasSearchBox == true)
 			setLayout(new MigLayout("", "0[][][grow]0", "0[grow][]0"));
 		else
 			setLayout(new MigLayout("", "0[][][grow]0", "0[grow]0"));
 
 		// Form the table
-		myTableModel = new ItemListTableModel<G1>(myItemHandler);
-		sortTableModel = new TableSorter(myTableModel);
+		workTableColumnHandler = new TableColumnHandler<>(aComposer.getItems());
+		viewTableModel = new ItemListTableModel<>(aItemHandler, workTableColumnHandler);
+		sortTableModel = new TableSorter(viewTableModel);
 		myTable = new JTable(sortTableModel);
 		sortTableModel.setTableHeader(myTable.getTableHeader());
-//!		sortTableModel.setSortingStatus(0, 1);
 
 		myTable.setBackground(null);
 		myTable.getSelectionModel().addListSelectionListener(this);
-		if (supportsMultipleSelection == false)
+		if (aSupportsMultipleSelection == false)
 			myTable.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		else
 			myTable.getSelectionModel().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 
-		// Notify the ItemHandler of its associated table and initialize the table
-		myItemHandler.initialize(myTable);
+		// Notify the TableModel of the associated table (and initialize the table)
+		viewTableModel.initialize(myTable);
 
 		// Create the scroll pane and add the table to it.
 		tableScrollPane = new JScrollPane(myTable);
-		add(tableScrollPane, "growx,growy,span 3");
+		add(tableScrollPane, "growx,growy,span");
 
 		// The search section
 		searchBox = null;
 		searchTF = null;
-		if (hasSearchBox == true)
+		if (aHasSearchBox == true)
 		{
-			tmpL = new JLabel("Find:");
-			add(tmpL, "newline,span 1");
+			var tmpL = new JLabel("Find:");
+			add(tmpL, "newline");
 
 			searchBox = new GComboBox<TableColumn>(this, new SearchBoxRenderer());
 			searchBox.setMaximumSize(searchBox.getPreferredSize());
-			add(searchBox, "span 1");
+			add(searchBox, "");
 
 			searchTF = new JTextField("");
 			searchTF.addActionListener(this);
-			add(searchTF, "growx,span 1");
+			add(searchTF, "growx,span");
 
 			// Set in the preferred font
 			tmpL.setFont(searchTF.getFont());
@@ -332,17 +417,16 @@ public class ItemListPanel<G1> extends JPanel implements ActionListener, ListSel
 	 */
 	protected void notifyListeners(ListSelectionEvent aEvent)
 	{
-		List<ListSelectionListener> tmpList;
-		ListSelectionEvent tmpEvent;
-
-		synchronized(this)
+		List<ListSelectionListener> tmpL;
+		synchronized (this)
 		{
-			tmpList = Lists.newArrayList(myListeners);
+			tmpL = new ArrayList<>(listenerL);
 		}
 
 		// Notify our listeners
-		tmpEvent = new ListSelectionEvent(this, aEvent.getFirstIndex(), aEvent.getLastIndex(), aEvent.getValueIsAdjusting());
-		for (ListSelectionListener aListener : tmpList)
+		var tmpEvent = new ListSelectionEvent(this, aEvent.getFirstIndex(), aEvent.getLastIndex(),
+				aEvent.getValueIsAdjusting());
+		for (ListSelectionListener aListener : tmpL)
 			aListener.valueChanged(tmpEvent);
 	}
 
@@ -351,46 +435,41 @@ public class ItemListPanel<G1> extends JPanel implements ActionListener, ListSel
 	 */
 	protected synchronized void rebuildItemList()
 	{
-		Collection<? extends G1> itemList;
-		Collection<G1> selectedObjSet;
-		int[] selectedRows;
-		int aRow;
-
 		// Insanity check
-		if (myItemProcessor == null)
+		if (refItemProcessor == null)
 			return;
 
 		// Get the old selected items
-		selectedObjSet = new LinkedList<G1>();
-		selectedRows = myTable.getSelectedRows();
-		if (selectedRows != null)
+		var selectedL = new ArrayList<G1>();
+		int[] idxArr = myTable.getSelectedRows();
+		for (int aInt : idxArr)
 		{
-			for (int aInt : selectedRows)
-			{
-				aRow = sortTableModel.modelIndex(aInt);
-				selectedObjSet.add(myTableModel.getRowItem(aRow));
-			}
+			int tmpIdx = sortTableModel.modelIndex(aInt);
+			selectedL.add(viewTableModel.getRowItem(tmpIdx));
 		}
 
 		// Suspend listening to selection change events
 		myTable.getSelectionModel().removeListSelectionListener(this);
 
 		// Update our table with the new set of items
-		itemList = myItemProcessor.getItems();
-		myTableModel.clear();
-		myTableModel.addItems(itemList);
+		var itemL = refItemProcessor.getAllItems();
+		viewTableModel.clear();
+		viewTableModel.addItems(itemL);
 
-		// Reselect the old selected items
-		myTable.getSelectionModel().clearSelection();
-		for (G1 aObj : selectedObjSet)
+		// Determine the row indexes to be selected
+		var tmpRowL = new ArrayList<Integer>();
+		for (G1 aObj : selectedL)
 		{
-			aRow = myTableModel.getRowIndex(aObj);
-			if (aRow != -1)
-			{
-				aRow = sortTableModel.viewIndex(aRow);
-				myTable.getSelectionModel().addSelectionInterval(aRow, aRow);
-			}
+			int tmpRow = viewTableModel.getRowIndex(aObj);
+			if (tmpRow == -1)
+				continue;
+
+			tmpRow = sortTableModel.viewIndex(tmpRow);
+			tmpRowL.add(tmpRow);
 		}
+
+		// Select the appropriate rows
+		TableUtil.setSelection(myTable, null, tmpRowL);
 
 		// Restore listening to selection change events
 		myTable.getSelectionModel().addListSelectionListener(this);
@@ -401,21 +480,27 @@ public class ItemListPanel<G1> extends JPanel implements ActionListener, ListSel
 	 */
 	protected synchronized void rebuildSearchBox()
 	{
-		TableColumn selectedItem;
-		int numCols;
-
 		// Insanity check
 		if (searchBox == null)
 			return;
 
 		// Save off the currently selected object
-		selectedItem = searchBox.getChosenItem();
+		var selectedItem = searchBox.getChosenItem();
 
 		// Reconstitude searchBox
-		numCols = myTable.getColumnCount();
+		var numCols = myTable.getColumnCount();
 		searchBox.removeAllItems();
 		for (int c1 = 0; c1 < numCols; c1++)
-			searchBox.addItem(myTable.getTableHeader().getColumnModel().getColumn(c1));
+		{
+			TableColumn tmpTC = myTable.getTableHeader().getColumnModel().getColumn(c1);
+
+			// Allow items to be searched if derived from JLabel
+			// TODO: In the future this should have a searchable flag rather
+			// this hack that checks if this is a child of JLabel
+			var tmpTCR = tmpTC.getCellRenderer();
+			if (tmpTCR instanceof JLabel)
+				searchBox.addItem(tmpTC);
+		}
 
 		// Set up the searchBox to appropriate state
 		searchBox.removeActionListener(this);
@@ -429,96 +514,87 @@ public class ItemListPanel<G1> extends JPanel implements ActionListener, ListSel
 	/**
 	 * Utility to locate the next item to be selected, and change the section to that such item
 	 */
-	protected synchronized void selectNextItem(TableColumn aTableColumn, String searchStr)
+	protected synchronized void selectNextItem(TableColumn aTableColumn, String aSearchStr)
 	{
-		TableCellRenderer aRenderer;
-		JLabel tmpL;
-		Object aObj;
-		String currStr;
-		int colNum, chosenRow, startRow, numRows;
-		int cX;
-		boolean hardMatchRequired;
-
-		if (aTableColumn == null || searchStr == null)
+		if (aTableColumn == null || aSearchStr == null)
 			return;
 
 		// Retrieve the model index and table renderer
-		aRenderer = aTableColumn.getCellRenderer();
-		colNum = aTableColumn.getModelIndex();
+		var aRenderer = aTableColumn.getCellRenderer();
+		var colNum = aTableColumn.getModelIndex();
 
 		// Is a hard match required
-		hardMatchRequired = false;
-		if (searchStr.endsWith(" ") == true)
+		var hardMatchRequired = false;
+		if (aSearchStr.endsWith(" ") == true)
 		{
 			hardMatchRequired = true;
-			searchStr = searchStr.substring(0, searchStr.length() - 1);
+			aSearchStr = aSearchStr.substring(0, aSearchStr.length() - 1);
 		}
 
-		startRow = myTable.getSelectedRow();
+		var startRow = myTable.getSelectedRow();
 		if (startRow == -1)
 			startRow = 0;
 		else
 			startRow++;
 
-		numRows = sortTableModel.getRowCount();
+		var numRows = sortTableModel.getRowCount();
 		if (numRows == 0)
 			return;
 
 		// Search lower half of table
-		chosenRow = -1;
-		for (cX = startRow; cX < numRows; cX++)
+		var chosenRow = -1;
+		for (var cX = startRow; cX < numRows; cX++)
 		{
-			aObj = sortTableModel.getValueAt(cX, colNum);
-			if (aObj != null)
-			{
+			var tmpObj = sortTableModel.getValueAt(cX, colNum);
+			if (tmpObj == null)
+				continue;
 
-				tmpL = (JLabel)aRenderer.getTableCellRendererComponent(myTable, aObj, false, false, cX, colNum);
-				currStr = tmpL.getText();
-				if (currStr != null)
+			var tmpL = (JLabel) aRenderer.getTableCellRendererComponent(myTable, tmpObj, false, false, cX, colNum);
+			var currStr = tmpL.getText();
+			if (currStr == null)
+				continue;
+
+			if (hardMatchRequired == true)
+			{
+				if (currStr.equals(aSearchStr) == true)
 				{
-					if (hardMatchRequired == true)
-					{
-						if (currStr.equals(searchStr) == true)
-						{
-							chosenRow = cX;
-							break;
-						}
-					}
-					else if (currStr.startsWith(searchStr) == true)
-					{
-						chosenRow = cX;
-						break;
-					}
+					chosenRow = cX;
+					break;
 				}
+			}
+			else if (currStr.contains(aSearchStr) == true)
+			{
+				chosenRow = cX;
+				break;
 			}
 		}
 
 		// Search upper half of table
 		if (chosenRow == -1)
 		{
-			for (cX = 0; cX < startRow; cX++)
+			for (var cX = 0; cX < startRow; cX++)
 			{
-				aObj = sortTableModel.getValueAt(cX, colNum);
-				if (aObj != null)
+				var tmpObj = sortTableModel.getValueAt(cX, colNum);
+				if (tmpObj == null)
+					continue;
+
+				var tmpL = (JLabel) aRenderer.getTableCellRendererComponent(myTable, tmpObj, false, false, cX, colNum);
+				var currStr = tmpL.getText();
+				if (currStr == null)
+					continue;
+
+				if (hardMatchRequired == true)
 				{
-					tmpL = (JLabel)aRenderer.getTableCellRendererComponent(myTable, aObj, false, false, cX, colNum);
-					currStr = tmpL.getText();
-					if (currStr != null)
+					if (currStr.equals(aSearchStr) == true)
 					{
-						if (hardMatchRequired == true)
-						{
-							if (currStr.equals(searchStr) == true)
-							{
-								chosenRow = cX;
-								break;
-							}
-						}
-						else if (currStr.startsWith(searchStr) == true)
-						{
-							chosenRow = cX;
-							break;
-						}
+						chosenRow = cX;
+						break;
 					}
+				}
+				else if (currStr.contains(aSearchStr) == true)
+				{
+					chosenRow = cX;
+					break;
 				}
 			}
 		}
@@ -542,8 +618,6 @@ public class ItemListPanel<G1> extends JPanel implements ActionListener, ListSel
 	protected synchronized void updateTable()
 	{
 		// Bail if an update is no longer needed.
-		// If an update was originally scheduled, this will be false
-		// due to coalesion.
 		if (updateNeeded == false)
 			return;
 //System.out.println("ItemListPanel.updateTable() Addr:" + this.hashCode());
@@ -558,6 +632,20 @@ public class ItemListPanel<G1> extends JPanel implements ActionListener, ListSel
 
 		// Mark any future (already scheduled) requests as filled.
 		updateNeeded = false;
+	}
+
+	/**
+	 * Helper method to update the table selection to match the state of the ItemManager.
+	 * <p>
+	 * TODO: In the future this method may go away ItemProcessor and ItemManager are merged.
+	 */
+	private void updateTableSelection()
+	{
+		// Ensure the table is up to date
+		updateTable();
+
+		if (refItemProcessor instanceof ItemManager)
+			TableUtil.updateTableSelection(this, (ItemManager<?>) refItemProcessor, myTable, sortTableModel);
 	}
 
 }

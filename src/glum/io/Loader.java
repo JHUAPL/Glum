@@ -1,19 +1,37 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.io;
 
-import java.awt.*;
+import java.awt.Component;
 import java.io.*;
-import java.net.*;
+import java.net.URL;
 import java.util.*;
-import java.util.List;
-import javax.swing.*;
+
+import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileFilter;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.ImmutableList;
 
 import glum.io.token.MatchTokenizer;
 import glum.io.token.Tokenizer;
 import glum.task.Task;
 
+/**
+ * Collection of utility method for loading a text file using {@link TokenProcessor}s and and a {@link Tokenizer}.
+ *
+ * @author lopeznr1
+ */
 public class Loader
 {
 	// Constants
@@ -30,11 +48,8 @@ public class Loader
 
 	public static void loadAsciiFile(File aFile, TokenProcessor aTokenProcessor, Tokenizer aTokenizer)
 	{
-		Collection<TokenProcessor> tpSet;
-
-		tpSet = new LinkedList<TokenProcessor>();
-		tpSet.add(aTokenProcessor);
-		loadAsciiFile(aFile, tpSet, aTokenizer);
+		var tmpTokenProcessorL = ImmutableList.of(aTokenProcessor);
+		loadAsciiFile(aFile, tmpTokenProcessorL, aTokenizer);
 	}
 
 	public static void loadAsciiFile(File aFile, Collection<TokenProcessor> tpSet)
@@ -49,16 +64,14 @@ public class Loader
 
 	public static void loadAsciiFile(File aFile, Collection<TokenProcessor> tpSet, Tokenizer aTokenizer, Task aTask)
 	{
-		URL aUrl;
-
 		try
 		{
-			aUrl = aFile.toURI().toURL();
-			loadAsciiFile(aUrl, tpSet, aTokenizer, aTask);
+			var tmpUrl = aFile.toURI().toURL();
+			loadAsciiFile(tmpUrl, tpSet, aTokenizer, aTask);
 		}
-		catch (Exception e)
+		catch (Exception aExp)
 		{
-			e.printStackTrace();
+			aExp.printStackTrace();
 			System.out.println("Resource not processed: " + aFile);
 			return;
 		}
@@ -66,11 +79,8 @@ public class Loader
 
 	public static void loadAsciiFile(URL aUrl, TokenProcessor aTokenProcessor)
 	{
-		Collection<TokenProcessor> tpSet;
-
-		tpSet = new LinkedList<TokenProcessor>();
-		tpSet.add(aTokenProcessor);
-		loadAsciiFile(aUrl, tpSet, new MatchTokenizer(DEFAULT_REG_EX));
+		var tmpTokenProcessorL = ImmutableList.of(aTokenProcessor);
+		loadAsciiFile(aUrl, tmpTokenProcessorL, new MatchTokenizer(DEFAULT_REG_EX));
 	}
 
 	public static void loadAsciiFile(URL aUrl, Collection<TokenProcessor> tpSet)
@@ -80,37 +90,29 @@ public class Loader
 
 	public static void loadAsciiFile(URL aUrl, Collection<TokenProcessor> tpSet, Tokenizer aTokenizer)
 	{
-		loadAsciiFile(aUrl, tpSet, aTokenizer, null);		
+		loadAsciiFile(aUrl, tpSet, aTokenizer, null);
 	}
-	
+
 	public static void loadAsciiFile(URL aUrl, Collection<TokenProcessor> tpSet, Tokenizer aTokenizer, Task aTask)
 	{
-		InputStream inStream;
-
 		// Insanity check
 		if (aUrl == null)
 			return;
 
 		// Process our input
-		inStream = null;
-		try
+		try (var aStream = aUrl.openStream();)
 		{
-			inStream = aUrl.openStream();
-			loadAsciiFile(inStream, tpSet, aTokenizer, aTask);
+			loadAsciiFile(aStream, tpSet, aTokenizer, aTask);
 		}
-		catch (FileNotFoundException e)
+		catch (FileNotFoundException aExp)
 		{
 			System.out.println("Resource not found: " + aUrl);
 			return;
 		}
-		catch (IOException e)
+		catch (IOException aExp)
 		{
 			System.out.println("Ioexception occured while loading: " + aUrl);
 			return;
-		}
-		finally
-		{
-			IoUtil.forceClose(inStream);
 		}
 	}
 
@@ -119,18 +121,17 @@ public class Loader
 		loadAsciiFile(inStream, aTokenProcessor, new MatchTokenizer(DEFAULT_REG_EX));
 	}
 
-	public static void loadAsciiFile(InputStream inStream, TokenProcessor aTokenProcessor, Tokenizer aTokenizer) throws IOException
+	public static void loadAsciiFile(InputStream inStream, TokenProcessor aTokenProcessor, Tokenizer aTokenizer)
+			throws IOException
 	{
 		loadAsciiFile(inStream, aTokenProcessor, aTokenizer, null);
 	}
 
-	public static void loadAsciiFile(InputStream inStream, TokenProcessor aTokenProcessor, Tokenizer aTokenizer, Task aTask) throws IOException
+	public static void loadAsciiFile(InputStream inStream, TokenProcessor aTokenProcessor, Tokenizer aTokenizer,
+			Task aTask) throws IOException
 	{
-		Collection<TokenProcessor> tpSet;
-
-		tpSet = new LinkedList<TokenProcessor>();
-		tpSet.add(aTokenProcessor);
-		loadAsciiFile(inStream, tpSet, aTokenizer, aTask);
+		var tmpTokenProcessorL = ImmutableList.of(aTokenProcessor);
+		loadAsciiFile(inStream, tmpTokenProcessorL, aTokenizer, aTask);
 	}
 
 	public static void loadAsciiFile(InputStream inStream, Collection<TokenProcessor> tpSet) throws IOException
@@ -138,23 +139,17 @@ public class Loader
 		loadAsciiFile(inStream, tpSet, new MatchTokenizer(DEFAULT_REG_EX), null);
 	}
 
-	public static void loadAsciiFile(InputStream inStream, Collection<TokenProcessor> tpSet, Tokenizer aTokenizer, Task aTask) throws IOException
+	public static void loadAsciiFile(InputStream inStream, Collection<TokenProcessor> tpSet, Tokenizer aTokenizer,
+			Task aTask) throws IOException
 	{
-		BufferedReader br;
-		String strLine;
-		int lineNum;
-		ArrayList<String> aList;
-		String tokens[], dummyVar[];
-		boolean isProcessed;
-
 		// Insanity check
 		if (tpSet == null)
 			return;
 
 		// Process our input
-		br = new BufferedReader( new InputStreamReader(inStream) );
-		lineNum = 0;
-		dummyVar = new String[1];
+		var tmpBR = new BufferedReader(new InputStreamReader(inStream));
+		var lineNum = 0;
+		var dummyVar = new String[1];
 
 		// Read the lines
 		while (true)
@@ -162,8 +157,8 @@ public class Loader
 			// Bail if the associated task is no longer active
 			if (aTask != null && aTask.isActive() == false)
 				return;
-			
-			strLine = br.readLine();
+
+			var strLine = tmpBR.readLine();
 			if (strLine == null)
 			{
 				// Notify the TokenProcessors of job done
@@ -171,25 +166,24 @@ public class Loader
 					aTP.flush();
 
 				// Release the various streams
-				br.close();
+				tmpBR.close();
 				inStream.close();
 				break;
 			}
 			lineNum++;
 
 			// Get the tokens out of our string
-			tokens = null;
-			aList = aTokenizer.getTokens(strLine);
-			if (aList.size() > 0)
+			var tokenL = aTokenizer.getTokens(strLine);
+			if (tokenL.size() > 0)
 			{
 				// Transform from a list to an array
-				tokens = aList.toArray(dummyVar);
+				var tokenArr = tokenL.toArray(dummyVar);
 
 				// Process the tokens
-				isProcessed = false;
+				var isProcessed = false;
 				for (TokenProcessor aTP : tpSet)
 				{
-					isProcessed = aTP.process(tokens, lineNum);
+					isProcessed = aTP.process(tokenArr, lineNum);
 					if (isProcessed == true)
 						break;
 				}
@@ -205,188 +199,184 @@ public class Loader
 
 	/**
 	 * Prompts the user to select a single File
-	 * 
+	 *
 	 * @param aLoaderInfo
-	 *           : A object that stores the configuration from method call to method call.
-	 * @param parentComp
-	 *           The parent component for the associated FileChooser GUI
+	 *        : A object that stores the configuration from method call to method call.
+	 * @param aParentComp
+	 *        The parent component for the associated FileChooser GUI
 	 * @param aTitleStr
-	 *           The title of the FileChooser GUI
-	 * @param ffList
-	 *           A List of FileFilters
-	 * @param isSaveDialog
-	 *           Whether this FileChooser displays a GUI appropriate for saving a file
+	 *        The title of the FileChooser GUI
+	 * @param aFileFilterC
+	 *        A List of FileFilters
+	 * @param aIsSaveDialog
+	 *        Whether this FileChooser displays a GUI appropriate for saving a file
 	 * @return The selected file or null
 	 */
-	public static File queryUserForFile(LoaderInfo aLoaderInfo, Component parentComp, String aTitleStr, Collection<FileFilter> ffList, boolean isSaveDialog)
+	public static File queryUserForFile(LoaderInfo aLoaderInfo, Component aParentComp, String aTitleStr,
+			Collection<FileFilter> aFileFilterC, boolean aIsSaveDialog)
 	{
-		JFileChooser aFC;
-		int aVal;
-
 		// Ensure we have a non null LoaderInfo
 		if (aLoaderInfo == null)
 			aLoaderInfo = new LoaderInfo();
 
 		// Set up the FileChooser
-		aFC = new StandardFileChooser(null);
-		aFC.setAcceptAllFileFilterUsed(false);
-		aFC.setDialogTitle(aTitleStr);
-		aFC.setMultiSelectionEnabled(false);
-		aLoaderInfo.loadConfig(aFC);
+		var tmpFC = new StandardFileChooser(null);
+		tmpFC.setAcceptAllFileFilterUsed(false);
+		tmpFC.setDialogTitle(aTitleStr);
+		tmpFC.setMultiSelectionEnabled(false);
+		aLoaderInfo.loadConfig(tmpFC);
 
 		// Set in the FileFilters
-		for (FileFilter aFileFilter : ffList)
-			aFC.addChoosableFileFilter(aFileFilter);
+		for (FileFilter aFileFilter : aFileFilterC)
+			tmpFC.addChoosableFileFilter(aFileFilter);
 
 		// Let the user choose a file
-		if (isSaveDialog == true)
-			aVal = aFC.showSaveDialog(parentComp);
+		int tmpVal;
+		if (aIsSaveDialog == true)
+			tmpVal = tmpFC.showSaveDialog(aParentComp);
 		else
-			aVal = aFC.showOpenDialog(parentComp);
+			tmpVal = tmpFC.showOpenDialog(aParentComp);
 
 		// Store off the current settings
-		aLoaderInfo.saveConfig(aFC);
+		aLoaderInfo.saveConfig(tmpFC);
 
 		// Bail if no file chosen
-		if (aVal != JFileChooser.APPROVE_OPTION)
+		if (tmpVal != JFileChooser.APPROVE_OPTION)
 			return null;
 
 		// Return the file
-		return aFC.getSelectedFile();
+		return tmpFC.getSelectedFile();
 	}
 
-	public static File queryUserForFile(LoaderInfo aLoaderInfo, Component parentComp, String aTitleStr, FileFilter aFileFilter, boolean isSaveDialog)
+	public static File queryUserForFile(LoaderInfo aLoaderInfo, Component aParentComp, String aTitleStr,
+			FileFilter aFileFilter, boolean aIsSaveDialog)
 	{
-		List<FileFilter> ffList;
-		
-		ffList = Lists.newArrayList();
+		var tmpFileFilterL = new ArrayList<FileFilter>();
 		if (aFileFilter != null)
-			ffList.add(aFileFilter);
-		
-		return queryUserForFile(aLoaderInfo, parentComp, aTitleStr, ffList, isSaveDialog);
+			tmpFileFilterL.add(aFileFilter);
+
+		return queryUserForFile(aLoaderInfo, aParentComp, aTitleStr, tmpFileFilterL, aIsSaveDialog);
 	}
-	
-	public static File queryUserForFile(LoaderInfo aLoaderInfo, Component parentComp, String aTitleStr, boolean isSaveDialog)
+
+	public static File queryUserForFile(LoaderInfo aLoaderInfo, Component aParentComp, String aTitleStr,
+			boolean aIsSaveDialog)
 	{
-		return queryUserForFile(aLoaderInfo, parentComp, aTitleStr, (FileFilter)null, isSaveDialog);
+		return queryUserForFile(aLoaderInfo, aParentComp, aTitleStr, (FileFilter) null, aIsSaveDialog);
 	}
-	
+
 	/**
 	 * Prompts the user to select multiple Files
-	 * 
+	 *
 	 * @param aLoaderInfo
-	 *           : A object that stores the configuration from method call to method call.
-	 * @param parentComp
-	 *           The parent component for the associated FileChooser GUI
+	 *        : A object that stores the configuration from method call to method call.
+	 * @param aParentComp
+	 *        The parent component for the associated FileChooser GUI
 	 * @param aTitleStr
-	 *           The title of the FileChooser GUI
-	 * @param ffList
-	 *           A List of FileFilters
-	 * @param isSaveDialog
-	 *           Whether this FileChooser displays a GUI appropriate for saving a file
+	 *        The title of the FileChooser GUI
+	 * @param aFileFilterC
+	 *        A List of FileFilters
+	 * @param aIsSaveDialog
+	 *        Whether this FileChooser displays a GUI appropriate for saving a file
 	 * @return The selected file or null
 	 */
-	public static List<File> queryUserForFiles(LoaderInfo aLoaderInfo, Component parentComp, String aTitleStr, Collection<FileFilter> ffList, boolean isSaveDialog)
+	public static List<File> queryUserForFiles(LoaderInfo aLoaderInfo, Component aParentComp, String aTitleStr,
+			Collection<FileFilter> aFileFilterC, boolean aIsSaveDialog)
 	{
-		JFileChooser aFC;
-		List<File> retList;
-		int aVal;
-
 		// Ensure we have a non null LoaderInfo
 		if (aLoaderInfo == null)
 			aLoaderInfo = new LoaderInfo();
 
 		// Set up the FileChooser
-		aFC = new StandardFileChooser(null);
-		aFC.setAcceptAllFileFilterUsed(false);
-		aFC.setDialogTitle(aTitleStr);
-		aFC.setMultiSelectionEnabled(true);
-		aLoaderInfo.loadConfig(aFC);
+		var tmpFC = new StandardFileChooser(null);
+		tmpFC.setAcceptAllFileFilterUsed(false);
+		tmpFC.setDialogTitle(aTitleStr);
+		tmpFC.setMultiSelectionEnabled(true);
+		aLoaderInfo.loadConfig(tmpFC);
 
 		// Set in the FileFilters
-		for (FileFilter aFileFilter : ffList)
-			aFC.addChoosableFileFilter(aFileFilter);
+		for (FileFilter aFileFilter : aFileFilterC)
+			tmpFC.addChoosableFileFilter(aFileFilter);
 
 		// Let the user choose a file
-		if (isSaveDialog == true)
-			aVal = aFC.showSaveDialog(parentComp);
+		int tmpVal;
+		if (aIsSaveDialog == true)
+			tmpVal = tmpFC.showSaveDialog(aParentComp);
 		else
-			aVal = aFC.showOpenDialog(parentComp);
+			tmpVal = tmpFC.showOpenDialog(aParentComp);
 
 		// Store off the current settings
-		aLoaderInfo.saveConfig(aFC);
+		aLoaderInfo.saveConfig(tmpFC);
 
 		// Bail if no file chosen
-		if (aVal != JFileChooser.APPROVE_OPTION)
+		if (tmpVal != JFileChooser.APPROVE_OPTION)
 			return null;
 
 		// Return a list that is modifiable
-		retList = Arrays.asList(aFC.getSelectedFiles());
-		retList = Lists.newArrayList(retList);
-		return retList;
+		var retFileL = Arrays.asList(tmpFC.getSelectedFiles());
+		retFileL = new ArrayList<>(retFileL);
+		return retFileL;
 	}
-	
-	public static List<File> queryUserForFiles(LoaderInfo aLoaderInfo, Component parentComp, String aTitleStr, FileFilter aFileFilter, boolean isSaveDialog)
+
+	public static List<File> queryUserForFiles(LoaderInfo aLoaderInfo, Component aParentComp, String aTitleStr,
+			FileFilter aFileFilter, boolean isSaveDialog)
 	{
-		List<FileFilter> ffList;
-		
-		ffList = Lists.newArrayList();
+		var tmpFileFilterL = new ArrayList<FileFilter>();
 		if (aFileFilter != null)
-			ffList.add(aFileFilter);
-		
-		return queryUserForFiles(aLoaderInfo, parentComp, aTitleStr, ffList, isSaveDialog);
+			tmpFileFilterL.add(aFileFilter);
+
+		return queryUserForFiles(aLoaderInfo, aParentComp, aTitleStr, tmpFileFilterL, isSaveDialog);
 	}
-	
-	public static List<File> queryUserForFiles(LoaderInfo aLoaderInfo, Component parentComp, String aTitleStr, boolean isSaveDialog)
+
+	public static List<File> queryUserForFiles(LoaderInfo aLoaderInfo, Component parentComp, String aTitleStr,
+			boolean aIsSaveDialog)
 	{
-		return queryUserForFiles(aLoaderInfo, parentComp, aTitleStr, (FileFilter)null, isSaveDialog);
+		return queryUserForFiles(aLoaderInfo, parentComp, aTitleStr, (FileFilter) null, aIsSaveDialog);
 	}
-	
+
 	/**
 	 * Prompts the user to select a single folder
-	 * 
+	 *
 	 * @param aLoaderInfo
-	 *           : A object that stores the configuration from method call to method call.
-	 * @param parentComp
-	 *           The parent component for the associated FileChooser GUI
+	 *        : A object that stores the configuration from method call to method call.
+	 * @param aParentComp
+	 *        The parent component for the associated FileChooser GUI
 	 * @param aTitleStr
-	 *           The title of the FileChooser GUI
-	 * @param isSaveDialog
-	 *           Whether this FileChooser displays a GUI appropriate for saving a file
+	 *        The title of the FileChooser GUI
+	 * @param aIsSaveDialog
+	 *        Whether this FileChooser displays a GUI appropriate for saving a file
 	 * @return The selected file or null
 	 */
-	public static File queryUserForPath(LoaderInfo aLoaderInfo, Component parentComp, String aTitleStr, boolean isSaveDialog)
+	public static File queryUserForPath(LoaderInfo aLoaderInfo, Component aParentComp, String aTitleStr,
+			boolean aIsSaveDialog)
 	{
-		JFileChooser aFC;
-		int aVal;
-
 		// Ensure we have a non null LoaderInfo
 		if (aLoaderInfo == null)
 			aLoaderInfo = new LoaderInfo();
 
 		// Set up the FileChooser
-		aFC = new StandardFileChooser(null);
-		aFC.setDialogTitle(aTitleStr);
-		aFC.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-		aFC.setMultiSelectionEnabled(false);
-		
-		aLoaderInfo.loadConfig(aFC);
+		var tmpFC = new StandardFileChooser(null);
+		tmpFC.setDialogTitle(aTitleStr);
+		tmpFC.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+		tmpFC.setMultiSelectionEnabled(false);
+
+		aLoaderInfo.loadConfig(tmpFC);
 
 		// Let the user choose a file
-		if (isSaveDialog == true)
-			aVal = aFC.showSaveDialog(parentComp);
+		int tmpVal;
+		if (aIsSaveDialog == true)
+			tmpVal = tmpFC.showSaveDialog(aParentComp);
 		else
-			aVal = aFC.showOpenDialog(parentComp);
+			tmpVal = tmpFC.showOpenDialog(aParentComp);
 
 		// Store off the current settings
-		aLoaderInfo.saveConfig(aFC);
+		aLoaderInfo.saveConfig(tmpFC);
 
 		// Bail if no file chosen
-		if (aVal != JFileChooser.APPROVE_OPTION)
+		if (tmpVal != JFileChooser.APPROVE_OPTION)
 			return null;
 
 		// Return the file
-		return aFC.getSelectedFile();
+		return tmpFC.getSelectedFile();
 	}
-	
+
 }

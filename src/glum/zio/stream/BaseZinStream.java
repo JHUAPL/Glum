@@ -1,3 +1,16 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.zio.stream;
 
 import java.io.IOException;
@@ -14,6 +27,11 @@ import glum.util.WallTimer;
 import glum.zio.ZinStream;
 import glum.zio.util.ZioUtil;
 
+/**
+ * Base implementation of the {@link ZinStream}.
+ *
+ * @author lopeznr1
+ */
 public abstract class BaseZinStream implements ZinStream
 {
 	// Work vars
@@ -47,13 +65,13 @@ public abstract class BaseZinStream implements ZinStream
 				digest = MessageDigest.getInstance("MD5");
 				digestPos = 0;
 			}
-			catch(NoSuchAlgorithmException aExp)
+			catch (NoSuchAlgorithmException aExp)
 			{
 				throw new IOException("Unreconized Algorithm", aExp);
 			}
 		}
 
-		// Allocate our work vars
+		// Allocate the work vars
 		allocateWorkVars(streamSizeHint);
 	}
 
@@ -65,7 +83,8 @@ public abstract class BaseZinStream implements ZinStream
 	 */
 	public BaseZinStream(ByteBuffer aWorkBuffer, boolean computeCheckSum) throws IOException
 	{
-		// Allocate the checksum digest worker
+		// Allocate the stat vars
+		wallTimer = new WallTimer(true);
 		digest = null;
 		checkSumStr = null;
 		if (computeCheckSum == true)
@@ -75,13 +94,13 @@ public abstract class BaseZinStream implements ZinStream
 				digest = MessageDigest.getInstance("MD5");
 				digestPos = 0;
 			}
-			catch(NoSuchAlgorithmException aExp)
+			catch (NoSuchAlgorithmException aExp)
 			{
 				throw new IOException("Unreconized Algorithm", aExp);
 			}
 		}
 
-		// Allocate our work vars
+		// Allocate the work vars
 		workBuffer = aWorkBuffer;
 		if (workBuffer == null)
 			throw new NullPointerException();
@@ -157,6 +176,17 @@ public abstract class BaseZinStream implements ZinStream
 			refreshWorkBuffer();
 
 		return workBuffer.getChar();
+	}
+
+	@Override
+	public <G1 extends Enum<?>> G1 readEnum(G1[] aValueArr) throws IOException
+	{
+		int ver = readVersion(0, 1);
+		if (ver == 0)
+			return null;
+
+		int ordinal = ZioUtil.readCompactInt(this);
+		return aValueArr[ordinal];
 	}
 
 	@Override
@@ -240,7 +270,8 @@ public abstract class BaseZinStream implements ZinStream
 
 		// Ensure the two arrays are equal
 		if (Arrays.equals(absByteArr, readByteArr) == false)
-			throw new IOException("Mismatched string. Needed:" + absStr + "  Found:" + new String(readByteArr, Charsets.US_ASCII));
+			throw new IOException(
+					"Mismatched string. Needed:" + absStr + "  Found:" + new String(readByteArr, Charsets.US_ASCII));
 	}
 
 	@Override
@@ -293,9 +324,7 @@ public abstract class BaseZinStream implements ZinStream
 		int readVersion;
 
 		// Read the version
-		readVersion = readByte() & 0x00FF;
-		if (readVersion == 255)
-			readVersion = readInt();
+		readVersion = ZioUtil.readCompactInt(this);
 
 		// Ensure the version is one of the valid versions
 		if (readVersion == aValidVer)
@@ -324,7 +353,18 @@ public abstract class BaseZinStream implements ZinStream
 		if (validArr.length == 1)
 			throw new IOException("Unreconized version... Read: " + readVersion + " Expected: " + validArr[0]);
 
-		throw new IOException("Unreconized version... Read: " + readVersion + " Expected one of the following: " + Arrays.toString(validArr));
+		throw new IOException("Unreconized version... Read: " + readVersion + " Expected one of the following: "
+				+ Arrays.toString(validArr));
+	}
+
+	@Override
+	public int readVersionAny() throws IOException
+	{
+		int readVersion;
+
+		// Read the version
+		readVersion = ZioUtil.readCompactInt(this);
+		return readVersion;
 	}
 
 	@Override
@@ -351,7 +391,7 @@ public abstract class BaseZinStream implements ZinStream
 	/**
 	 * Helper method to refresh the workBuffer with new data from the stream. This method ensures that workBuffer will
 	 * always have enough data to support reading.
-	 * <P>
+	 * <p>
 	 * If there is no more data on the stream then this method should throw an IOException
 	 */
 	protected abstract void refreshWorkBuffer() throws IOException;
@@ -369,14 +409,12 @@ public abstract class BaseZinStream implements ZinStream
 	 */
 	protected void updateDigest() throws IOException
 	{
-		ByteBuffer tmpBuffer;
-
 		// Bail if the there is no digest
 		if (digest == null)
 			return;
 
 		// Retrieve a duplicate of the workBuffer (to preserve its configuration)
-		tmpBuffer = workBuffer.duplicate();
+		var tmpBuffer = workBuffer.duplicate();
 
 		// Evaluate the digest from the digestPos to the limit (workBuffer's current position)
 		tmpBuffer.flip();
@@ -392,11 +430,8 @@ public abstract class BaseZinStream implements ZinStream
 	 */
 	private void allocateWorkVars(long streamSizeHint) throws IOException
 	{
-		int workCap;
-		boolean isDirect;
-
 		// Determine if we should use a direct buffer for our workBuffer (stream > 25 MB)
-		isDirect = false;
+		var isDirect = false;
 		if (streamSizeHint > 25 * 1024 * 1024)
 			isDirect = true;
 
@@ -404,7 +439,7 @@ public abstract class BaseZinStream implements ZinStream
 		if (isDirect == false)
 		{
 			// [1K, 16K], indirect buffer
-			workCap = (int)streamSizeHint;
+			var workCap = (int) streamSizeHint;
 			if (workCap < 1024)
 				workCap = 1024;
 			else if (workCap > 16 * 1024)
@@ -415,10 +450,10 @@ public abstract class BaseZinStream implements ZinStream
 		else
 		{
 			// 512K, direct buffer
-			workCap = 512 * 1024;
+			var workCap = 512 * 1024;
 			workBuffer = ByteBuffer.allocateDirect(workCap);
 		}
-//System.out.println("Is direct buffer: " + workBuffer.isDirect() + " bufferCap: " + workCap);		
+//System.out.println("Is direct buffer: " + workBuffer.isDirect() + " bufferCap: " + workCap);
 
 		// Mark the contents in workBuffer as completely empty
 		workBuffer.limit(0);

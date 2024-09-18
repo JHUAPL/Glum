@@ -1,24 +1,45 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.logic.dock;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.Set;
+
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
-
-import glum.logic.LogicChunk;
-import glum.logic.SubMenuChunk;
-import glum.registry.Registry;
 
 import bibliothek.gui.DockFrontend;
 import bibliothek.gui.Dockable;
 import bibliothek.gui.dock.event.DockFrontendListener;
+import glum.logic.LogicChunk;
+import glum.logic.SubMenuChunk;
+import glum.registry.Registry;
 
+/**
+ * {@link LogicChunk} used to allow an end user to load a dockable configuration.
+ *
+ * @author lopeznr1
+ */
 public class FrontendLoadMI implements LogicChunk, SubMenuChunk, DockFrontendListener, ActionListener
 {
-	protected DockFrontend refFrontend;
-	protected JMenu refMenu;
+	// Ref vars
+	private final DockFrontend refFrontend;
 
+	// State vars
+	private JMenu refMenu;
+
+	/** Standard Constructor */
 	public FrontendLoadMI(Registry aRegistry, String aLabel)
 	{
 		refFrontend = aRegistry.getSingleton(DockFrontend.class, DockFrontend.class);
@@ -28,14 +49,11 @@ public class FrontendLoadMI implements LogicChunk, SubMenuChunk, DockFrontendLis
 	@Override
 	public void actionPerformed(ActionEvent aEvent)
 	{
-		Object aSource;
-		String aName;
-
-		aSource = aEvent.getSource();
-		if (aSource instanceof JMenuItem)
+		var source = aEvent.getSource();
+		if (source instanceof JMenuItem)
 		{
-			aName = ((JMenuItem)aSource).getText();
-			refFrontend.load(aName);
+			var name = ((JMenuItem) source).getText();
+			refFrontend.load(name);
 		}
 	}
 
@@ -48,18 +66,6 @@ public class FrontendLoadMI implements LogicChunk, SubMenuChunk, DockFrontendLis
 	@Override
 	public void dispose()
 	{
-	}
-
-	@Override
-	public String getName()
-	{
-		return "DockFrontend Configuration Loader";
-	}
-
-	@Override
-	public String getVersion()
-	{
-		return "0.1";
 	}
 
 	@Override
@@ -124,32 +130,28 @@ public class FrontendLoadMI implements LogicChunk, SubMenuChunk, DockFrontendLis
 	}
 
 	/**
-	 * Utility method to keep the refMenu in sync with the available dock
-	 * configurations
+	 * Helper method that keeps various UI components synchronized.
 	 */
 	protected void updateGui()
 	{
-		Set<String> currSet;
-		JMenuItem tmpMI;
-
 		// Remove the old items
 		refMenu.removeAll();
 
 		// Add all of the current configurations
-		currSet = refFrontend.getSettings();
-		for (String aStr : currSet)
+		var currS = refFrontend.getSettings();
+		for (String aStr : currS)
 		{
 			// Do not add hidden configurations
 			if (aStr.charAt(0) != '.')
 			{
-				tmpMI = new JMenuItem(aStr);
+				var tmpMI = new JMenuItem(aStr);
 				tmpMI.addActionListener(this);
 				refMenu.add(tmpMI);
 			}
 		}
 
 		// Ensure we have items (to be enabled)
-		refMenu.setEnabled(currSet.size() > 0);
+		refMenu.setEnabled(currS.size() > 0);
 	}
 
 }

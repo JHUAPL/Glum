@@ -1,5 +1,10 @@
 package glum.io.token;
 
+/**
+ * Collection of utility method to aid with tokenization of input strings.
+ *
+ * @author lopeznr1
+ */
 public class TokenUtil
 {
 	/**
@@ -24,29 +29,26 @@ public class TokenUtil
 	}
 
 	/**
-	 * Utility method to convert a wild card exression to a regular
-	 * expression. Currently only the special chars '?', '*' are supported.
-	 * Source: http://www.rgagnon.com/javadetails/java-0515.html
+	 * Utility method to convert a wild card exression to a regular expression. Currently only the special chars '?', '*'
+	 * are supported. Source: http://www.rgagnon.com/javadetails/java-0515.html
 	 */
-	public static String convertWildCardToRegEx(String wildcard)
+	public static String convertWildCardToRegEx(String aWildcard)
 	{
-		StringBuffer regex;
-		
-		regex = new StringBuffer(wildcard.length());
-		regex.append('^');
-		for (int i = 0, is = wildcard.length(); i < is; i++)
+		var regexSB = new StringBuffer(aWildcard.length());
+		regexSB.append('^');
+		for (int i = 0, is = aWildcard.length(); i < is; i++)
 		{
-			char c = wildcard.charAt(i);
+			char c = aWildcard.charAt(i);
 			switch (c)
 			{
 				case '*':
-				regex.append(".*");
-				break;
-				
+					regexSB.append(".*");
+					break;
+
 				case '?':
-				regex.append(".");
-				break;
-				
+					regexSB.append(".");
+					break;
+
 				// escape special regexp-characters
 				case '(':
 				case ')':
@@ -59,18 +61,18 @@ public class TokenUtil
 				case '}':
 				case '|':
 				case '\\':
-				regex.append("\\");
-				regex.append(c);
-				break;
-				
+					regexSB.append("\\");
+					regexSB.append(c);
+					break;
+
 				default:
-				regex.append(c);
-				break;
+					regexSB.append(c);
+					break;
 			}
 		}
-		
-		regex.append('$');
-		return (regex.toString());
-	}	
+
+		regexSB.append('$');
+		return (regexSB.toString());
+	}
 
 }

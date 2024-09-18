@@ -1,120 +1,363 @@
+/*
+ * Copyright (c) 1995, 2008, Oracle and/or its affiliates. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ *   - Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *
+ *   - Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ *
+ *   - Neither the name of Oracle or the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+ * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 package glum.gui.table;
 
-import java.awt.*;
+import java.awt.Component;
 import java.awt.event.*;
 import java.util.*;
-import java.util.List;
 
 import javax.swing.*;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 import javax.swing.table.*;
 
+import com.google.common.collect.ImmutableList;
+
+import glum.gui.table.sort.DefaultSortIconProvider;
+import glum.gui.table.sort.SortIconProvider;
+
 /**
- * TableSorter is a decorator for TableModels; adding sorting functionality to a
- * supplied TableModel. TableSorter does not store or copy the data in its
- * TableModel; instead it maintains a map from the row indexes of the view to
- * the row indexes of the model. As requests are made of the sorter (like
- * getValueAt(row, col)) they are passed to the underlying model after the row
- * numbers have been translated via the internal mapping array. This way, the
- * TableSorter appears to hold another copy of the table with the rows in a
- * different order.
- * <p/>
- * TableSorter registers itself as a listener to the underlying model, just as
- * the JTable itself would. Events recieved from the model are examined,
- * sometimes manipulated (typically widened), and then passed on to the
- * TableSorter's listeners (typically the JTable). If a change to the model has
- * invalidated the order of TableSorter's rows, a note of this is made and the
- * sorter will resort the rows the next time a value is requested.
- * <p/>
- * When the tableHeader property is set, either by using the setTableHeader()
- * method or the two argument constructor, the table header may be used as a
- * complete UI for TableSorter. The default renderer of the tableHeader is
- * decorated with a renderer that indicates the sorting status of each column.
- * In addition, a mouse listener is installed with the following behavior:
+ * {@link TableSorter} is a decorator for TableModels; adding sorting functionality to a supplied TableModel.
+ * TableSorter does not store or copy the data in its TableModel; instead it maintains a map from the row indexes of the
+ * view to the row indexes of the model. As requests are made of the sorter (like getValueAt(row, col)) they are passed
+ * to the underlying model after the row numbers have been translated via the internal mapping array. This way, the
+ * TableSorter appears to hold another copy of the table with the rows in a different order.
+ * <p>
+ * TableSorter registers itself as a listener to the underlying model, just as the JTable itself would. Events received
+ * from the model are examined, sometimes manipulated (typically widened), and then passed on to the TableSorter's
+ * listeners (typically the JTable). If a change to the model has invalidated the order of TableSorter's rows, a note of
+ * this is made and the sorter will resort the rows the next time a value is requested.
+ * <p>
+ * When the tableHeader property is set, either by using the setTableHeader() method or the two argument constructor,
+ * the table header may be used as a complete UI for TableSorter. The default renderer of the tableHeader is decorated
+ * with a renderer that indicates the sorting status of each column. In addition, a mouse listener is installed with the
+ * following behavior:
  * <ul>
- * <li>
- * Mouse-click: Clears the sorting status of all other columns and advances the
- * sorting status of that column through three values: {NOT_SORTED, ASCENDING,
- * DESCENDING} (then back to NOT_SORTED again).
- * <li>
- * SHIFT-mouse-click: Clears the sorting status of all other columns and cycles
- * the sorting status of the column through the same three values, in the
- * opposite order: {NOT_SORTED, DESCENDING, ASCENDING}.
- * <li>
- * CONTROL-mouse-click and CONTROL-SHIFT-mouse-click: as above except that the
- * changes to the column do not cancel the statuses of columns that are already
- * sorting - giving a way to initiate a compound sort.
+ * <li>Mouse-Click: Clears the sorting status of all other columns and sets the current column as the primary sort
+ * column.
+ * <li>CONTROL-Mouse-Click: Adds a secondary (or lower rank) column to sort upon.
+ * <li>SHIFT-Mouse-Click: Clears the sort status of the selected column. The column will no longer influence the sort.
  * </ul>
- * <p/>
- * This is a long overdue rewrite of a class of the same name that first
- * appeared in the swing table demos in 1997.
- * 
+ * Please note that mouse-clicking on the columns will toggle the sort directive of that column from ascending to
+ * descending.
+ * <p>
+ * Column headers that have been selected for sorting provide the following (default) visual indicators:
+ * <ul>
+ * <li>The 1st (primary) sort column is displayed with a bright red icon.
+ * <li>The 2nd sort column is displayed with a dark red icon.
+ * <li>The 3rd sort column is displayed with a black icon.
+ * <li>The 4th (and all lower level) sort column is displayed with a gray icon.
+ * </ul>
+ * Please note that the icons used for painting the sort indicators can be customized via the method
+ * {@link #setSortIconProvider(SortIconProvider)}.
+ * <p>
+ * This class is an incompatible rewrite of the TableSorter class (~2004Feb27). The original class can be currently be
+ * sourced (as of date 2019Aug20) from: </br>
+ * https://docs.oracle.com/javase/tutorial/uiswing/examples/components/TableSorterDemoProject/src/components/TableSorter.java</br>
+ * or</br>
+ * https://web.archive.org/web/20171019235101/http://docs.oracle.com/javase/tutorial/uiswing/examples/components/TableSorterDemoProject/src/components/TableSorter.java
+ *
  * @author Philip Milne
  * @author Brendon McLean
  * @author Dan van Enckevort
  * @author Parwinder Sekhon
- * @version 2.0 02/27/04
+ * @author lopeznr1 (Rewrite author as used in Glum library)
  */
-@SuppressWarnings("unchecked")
-// This class is no longer supported. It should be removed as of Java 1.7
 public class TableSorter extends AbstractTableModel
 {
-	protected TableModel tableModel;
-
 	// Constants
-	private static final long serialVersionUID = -1999L;
-	public static final int DESCENDING = -1;
-	public static final int NOT_SORTED = 0;
-	public static final int ASCENDING = 1;
+	private static final Comparator<?> LEXICAL_COMPARATOR = Comparator.comparing(Object::toString);
 
-	private static Directive EMPTY_DIRECTIVE = new Directive(-1, NOT_SORTED);
+	// Ref vars
+	private final TableModel refTableModel;
+	private JTableHeader refTableHeader;
 
-	public static final Comparator COMPARABLE_COMAPRATOR = new Comparator()
-	{
-		@Override
-		public int compare(Object o1, Object o2)
-		{
-			return ((Comparable)o1).compareTo(o2);
-		}
-	};
-	public static final Comparator LEXICAL_COMPARATOR = new Comparator()
-	{
-		@Override
-		public int compare(Object o1, Object o2)
-		{
-			return o1.toString().compareTo(o2.toString());
-		}
-	};
-
+	// State vars
 	private Row[] viewToModel;
 	private int[] modelToView;
 
-	private JTableHeader tableHeader;
-	private MouseListener mouseListener;
-	private TableModelListener tableModelListener;
-	private Map columnComparators = new HashMap();
-	private List sortingColumns = new ArrayList();
+	private final MouseListener mouseListener;
+	private final TableModelListener tableModelListener;
+	private final Map<Class<?>, Comparator<?>> columnComparatorClassM;
+	private final Map<Integer, Comparator<?>> columnComparatorIndexM;
+	private final List<Directive> sortingColumnL;
 	private boolean isSortEnabled;
 
-	public TableSorter()
+	// Render vars
+	private SortIconProvider refSortIconProvider;
+	private ImmutableList<Icon> sortIconAsceL;
+	private ImmutableList<Icon> sortIconDescL;
+	private int cSize;
+
+	/**
+	 * Standard Constructor
+	 *
+	 * @param aTableModel
+	 *        The table model which will be used as the backing table model.
+	 * @param aTableHeader
+	 *        The table header asociated with the JTable.
+	 */
+	public TableSorter(TableModel aTableModel, JTableHeader aTableHeader)
 	{
-		this.mouseListener = new MouseHandler();
-		this.tableModelListener = new TableModelHandler();
+		refTableModel = aTableModel;
+
+		viewToModel = null;
+		modelToView = null;
+
+		mouseListener = new MouseHandler();
+		tableModelListener = new TableModelHandler();
+		columnComparatorClassM = new HashMap<>();
+		columnComparatorIndexM = new HashMap<>();
+		sortingColumnL = new ArrayList<>();
 		isSortEnabled = true;
+
+		refSortIconProvider = DefaultSortIconProvider.Default;
+		sortIconAsceL = ImmutableList.of();
+		sortIconDescL = ImmutableList.of();
+		cSize = -1;
+
+		if (aTableHeader != null)
+			setTableHeader(aTableHeader);
+
+		// Register for events of interest
+		refTableModel.addTableModelListener(tableModelListener);
+		fireTableStructureChanged();
 	}
 
-	public TableSorter(TableModel tableModel)
+	/** Simplified Constructor */
+	public TableSorter(TableModel aTableModel)
 	{
-		this();
-		setTableModel(tableModel);
+		this(aTableModel, null);
 	}
 
-	public TableSorter(TableModel tableModel, JTableHeader tableHeader)
+	/**
+	 * Returns the {@link SortDir} of the specified column.
+	 */
+	public SortDir getSortDir(int aColNum)
 	{
-		this();
-		setTableHeader(tableHeader);
-		setTableModel(tableModel);
+		var tmpDirective = getDirective(aColNum);
+		if (tmpDirective != null)
+			return tmpDirective.sortDir;
+
+		return SortDir.NotSorted;
+	}
+
+	/**
+	 * Returns an ordered map of column model index to the {@link SortDir}.
+	 * <p>
+	 * The returned map is a snapshot of the columns that are sorted and their ordered priority.
+	 */
+	public Map<Integer, SortDir> getSortState()
+	{
+		var retSortStateM = new LinkedHashMap<Integer, SortDir>();
+		for (var aDirective : sortingColumnL)
+			retSortStateM.put(aDirective.column, aDirective.sortDir);
+
+		return retSortStateM;
+	}
+
+	public JTableHeader getTableHeader()
+	{
+		return refTableHeader;
+	}
+
+	public TableModel getTableModel()
+	{
+		return refTableModel;
+	}
+
+	/**
+	 * Returns true if any columns have a sort directive set.
+	 */
+	public boolean isSorting()
+	{
+		return sortingColumnL.size() != 0;
+	}
+
+	/**
+	 * Sets in the Comparator that will be associated with columns of data type, aType.
+	 * <p>
+	 * This Comparator will only be used if the column does not have a specific Comparator associated with it.
+	 *
+	 * @param aType
+	 * @param aComparator
+	 */
+	public void setColumnClassComparator(Class<?> aType, Comparator<?> aComparator)
+	{
+		if (aComparator == null)
+			columnComparatorClassM.remove(aType);
+		else
+			columnComparatorClassM.put(aType, aComparator);
+	}
+
+	/**
+	 * Sets in the Comparator that will be associated with the specified column.
+	 * <p>
+	 * This Comparator will be used before other (criteria matching) Comparators.
+	 *
+	 * @param aColNum
+	 * @param aComparator
+	 */
+	public void setColumnIndexComparator(int aColNum, Comparator<?> aComparator)
+	{
+		if (aComparator == null)
+			columnComparatorIndexM.remove(aColNum);
+		else
+			columnComparatorIndexM.put(aColNum, aComparator);
+	}
+
+	/**
+	 * Sets the {@link SortIconProvider}.
+	 */
+	public void setSortIconProvider(SortIconProvider aSortIconProvider)
+	{
+		refSortIconProvider = aSortIconProvider;
+
+		// Invalidate the sort icons cache
+		sortIconAsceL = ImmutableList.of();
+		sortIconDescL = ImmutableList.of();
+		cSize = -1;
+
+		sortingStatusChanged();
+	}
+
+	/**
+	 * Installs an ordered map of column model index to the {@link SortDir}.
+	 * <p>
+	 * The installed map will set the columns that are sorted and their ordered sort priority.
+	 */
+	public void setSortState(Map<Integer, SortDir> aSortDirM)
+	{
+		sortingColumnL.clear();
+		for (var aCol : aSortDirM.keySet())
+			sortingColumnL.add(new Directive(aCol, aSortDirM.get(aCol)));
+
+		sortingStatusChanged();
+	}
+
+	/**
+	 * Sets whether sorting is enabled or disabled.
+	 */
+	public void setSortingEnabled(boolean aBool)
+	{
+		isSortEnabled = aBool;
+
+		clearSortingState();
+	}
+
+	/**
+	 * Sets in the table header associated with the backing TableModel. A mouse listener will be installed that provides
+	 * a fully functional UI for configuring the rank and sort directive of the various columns.
+	 *
+	 * @param aTableHeader
+	 */
+	public void setTableHeader(JTableHeader aTableHeader)
+	{
+		if (refTableHeader != null)
+		{
+			refTableHeader.removeMouseListener(mouseListener);
+			TableCellRenderer defaultRenderer = refTableHeader.getDefaultRenderer();
+			if (defaultRenderer instanceof SortableHeaderRenderer)
+			{
+				refTableHeader.setDefaultRenderer(((SortableHeaderRenderer) defaultRenderer).tableCellRenderer);
+			}
+		}
+		refTableHeader = aTableHeader;
+		if (refTableHeader != null)
+		{
+			refTableHeader.addMouseListener(mouseListener);
+			refTableHeader.setDefaultRenderer(new SortableHeaderRenderer(refTableHeader.getDefaultRenderer()));
+		}
+	}
+
+	public int modelIndex(int viewIndex)
+	{
+		return getViewToModel()[viewIndex].modelIndex;
+	}
+
+	public int viewIndex(int modelIndex)
+	{
+		return getModelToView()[modelIndex];
+	}
+
+	// TableModel interface methods
+	@Override
+	public int getRowCount()
+	{
+		return (refTableModel == null) ? 0 : refTableModel.getRowCount();
+	}
+
+	@Override
+	public int getColumnCount()
+	{
+		return (refTableModel == null) ? 0 : refTableModel.getColumnCount();
+	}
+
+	@Override
+	public String getColumnName(int column)
+	{
+		return refTableModel.getColumnName(column);
+	}
+
+	@Override
+	public Class<?> getColumnClass(int column)
+	{
+		return refTableModel.getColumnClass(column);
+	}
+
+	@Override
+	public boolean isCellEditable(int row, int column)
+	{
+		return refTableModel.isCellEditable(modelIndex(row), column);
+	}
+
+	@Override
+	public Object getValueAt(int row, int column)
+	{
+		return refTableModel.getValueAt(modelIndex(row), column);
+	}
+
+	@Override
+	public void setValueAt(Object aValue, int row, int column)
+	{
+		refTableModel.setValueAt(aValue, modelIndex(row), column);
+	}
+
+	/**
+	 * Helper method that clears all sorting directives and sends out the proper notification.
+	 */
+	private void cancelSorting()
+	{
+		sortingColumnL.clear();
+		sortingStatusChanged();
 	}
 
 	private void clearSortingState()
@@ -123,166 +366,87 @@ public class TableSorter extends AbstractTableModel
 		modelToView = null;
 	}
 
-	public TableModel getTableModel()
+	/**
+	 * Helper method that returns the appropriate Comparator for the specified column.
+	 */
+	private Comparator<?> getComparator(int aColNum)
 	{
-		return tableModel;
-	}
+		Comparator<?> retComparator;
 
-	public void setTableModel(TableModel tableModel)
-	{
-		if (this.tableModel != null)
-		{
-			this.tableModel.removeTableModelListener(tableModelListener);
-		}
+		// Utilize the column index Comparator (if specified)
+		retComparator = columnComparatorIndexM.get(aColNum);
+		if (retComparator != null)
+			return retComparator;
 
-		this.tableModel = tableModel;
-		if (this.tableModel != null)
-		{
-			this.tableModel.addTableModelListener(tableModelListener);
-		}
+		// Utilize the class type Comparator (if specified)
+		Class<?> columnType = refTableModel.getColumnClass(aColNum);
+		retComparator = columnComparatorClassM.get(columnType);
+		if (retComparator != null)
+			return retComparator;
 
-		clearSortingState();
-		fireTableStructureChanged();
-	}
-
-	public JTableHeader getTableHeader()
-	{
-		return tableHeader;
-	}
-
-	public void setTableHeader(JTableHeader tableHeader)
-	{
-		if (this.tableHeader != null)
-		{
-			this.tableHeader.removeMouseListener(mouseListener);
-			TableCellRenderer defaultRenderer = this.tableHeader.getDefaultRenderer();
-			if (defaultRenderer instanceof SortableHeaderRenderer)
-			{
-				this.tableHeader.setDefaultRenderer(((SortableHeaderRenderer)defaultRenderer).tableCellRenderer);
-			}
-		}
-		this.tableHeader = tableHeader;
-		if (this.tableHeader != null)
-		{
-			this.tableHeader.addMouseListener(mouseListener);
-			this.tableHeader.setDefaultRenderer(new SortableHeaderRenderer(this.tableHeader.getDefaultRenderer()));
-		}
-	}
-
-	public boolean isSorting()
-	{
-		return sortingColumns.size() != 0;
-	}
-
-	private Directive getDirective(int column)
-	{
-		for (int i = 0; i < sortingColumns.size(); i++)
-		{
-			Directive directive = (Directive)sortingColumns.get(i);
-			if (directive.column == column)
-			{
-				return directive;
-			}
-		}
-		return EMPTY_DIRECTIVE;
-	}
-
-	public int getSortingStatus(int column)
-	{
-		return getDirective(column).direction;
-	}
-
-	private void sortingStatusChanged()
-	{
-		clearSortingState();
-		fireTableDataChanged();
-		if (tableHeader != null)
-		{
-			tableHeader.repaint();
-		}
-	}
-
-	public void setSortingStatus(int column, int status)
-	{
-		Directive directive = getDirective(column);
-		if (directive != EMPTY_DIRECTIVE)
-		{
-			sortingColumns.remove(directive);
-		}
-		if (status != NOT_SORTED)
-		{
-			sortingColumns.add(new Directive(column, status));
-		}
-		sortingStatusChanged();
-	}
-
-	protected Icon getHeaderRendererIcon(int column, int size)
-	{
-		Directive directive = getDirective(column);
-		if (directive == EMPTY_DIRECTIVE)
-		{
-			return null;
-		}
-		// return new Arrow(directive.direction == DESCENDING, size,
-		// sortingColumns.indexOf(directive));
-		return null;
-	}
-
-	private void cancelSorting()
-	{
-		sortingColumns.clear();
-		sortingStatusChanged();
-	}
-
-	public void setColumnComparator(Class type, Comparator comparator)
-	{
-		if (comparator == null)
-		{
-			columnComparators.remove(type);
-		}
-		else
-		{
-			columnComparators.put(type, comparator);
-		}
-	}
-
-	protected Comparator getComparator(int column)
-	{
-		Class columnType = tableModel.getColumnClass(column);
-		Comparator comparator = (Comparator)columnComparators.get(columnType);
-		if (comparator != null)
-		{
-			return comparator;
-		}
 		if (Comparable.class.isAssignableFrom(columnType))
-		{
-			return COMPARABLE_COMAPRATOR;
-		}
+			return Comparator.naturalOrder();
+
 		return LEXICAL_COMPARATOR;
 	}
 
-	private Row[] getViewToModel()
+	/**
+	 * Helper method that returns the sort directive of the specified column.
+	 * <p>
+	 * Returns null if the column is not sorted.
+	 */
+	private Directive getDirective(int aColNum)
 	{
-		if (viewToModel == null)
+		for (Directive aDirective : sortingColumnL)
 		{
-			int tableModelRowCount = tableModel.getRowCount();
-			viewToModel = new Row[tableModelRowCount];
-			for (int row = 0; row < tableModelRowCount; row++)
-			{
-				viewToModel[row] = new Row(row);
-			}
-
-			if (isSorting())
-			{
-				Arrays.sort(viewToModel);
-			}
+			if (aDirective.column == aColNum)
+				return aDirective;
 		}
-		return viewToModel;
+		return null;
 	}
 
-	public int modelIndex(int viewIndex)
+	/**
+	 * Helper method that returns the icon that should be used for the specified column.
+	 * <p>
+	 * If the column is not sorted then null will be returned.
+	 *
+	 * @param aColumn
+	 * @param aSize
+	 * @return
+	 */
+	private Icon getHeaderRendererIcon(int aColumn, int aSize)
 	{
-		return getViewToModel()[viewIndex].modelIndex;
+		// Bail if this column is not sorted
+		Directive directive = getDirective(aColumn);
+		if (directive == null)
+			return null;
+
+		// Synthesize new icons if the size differs from the cache
+		if (aSize != cSize)
+		{
+			sortIconAsceL = ImmutableList.copyOf(refSortIconProvider.getIconsForSortAsce(aSize));
+			sortIconDescL = ImmutableList.copyOf(refSortIconProvider.getIconsForSortDesc(aSize));
+		}
+		cSize = aSize;
+
+		// Locate the proper sort icon list
+		List<Icon> sortIconL = sortIconAsceL;
+		if (directive.sortDir == SortDir.Descending)
+			sortIconL = sortIconDescL;
+
+		// Bail if there are no available sort icons
+		if (sortIconL.size() == 0)
+			return null;
+
+		// Retrieve the priority
+		int priority = sortingColumnL.indexOf(directive);
+		if (priority < 0)
+			priority = 0;
+		else if (priority >= sortIconL.size())
+			priority = sortIconL.size() - 1;
+
+		// Return the proper icon corresponding to the priority
+		return sortIconL.get(priority);
 	}
 
 	private int[] getModelToView()
@@ -299,111 +463,94 @@ public class TableSorter extends AbstractTableModel
 		return modelToView;
 	}
 
-	public int viewIndex(int modelIndex)
+	private Row[] getViewToModel()
 	{
-		return getModelToView()[modelIndex];
+		if (viewToModel == null)
+		{
+			int tableModelRowCount = refTableModel.getRowCount();
+			viewToModel = new Row[tableModelRowCount];
+			for (int row = 0; row < tableModelRowCount; row++)
+			{
+				viewToModel[row] = new Row(row);
+			}
+
+			if (isSorting())
+			{
+				Arrays.sort(viewToModel);
+			}
+		}
+		return viewToModel;
 	}
 
-	// TableModel interface methods
-
-	@Override
-	public int getRowCount()
+	/**
+	 * Sets the {@link SortDir} for a specific column.
+	 * <p>
+	 * Note that this column will be sorted after any previously sorted column.
+	 */
+	private void setSortDir(int aColNum, SortDir aSortDir)
 	{
-		return (tableModel == null) ? 0 : tableModel.getRowCount();
+		var directive = getDirective(aColNum);
+		if (directive != null)
+			sortingColumnL.remove(directive);
+
+		if (aSortDir != SortDir.NotSorted)
+			sortingColumnL.add(new Directive(aColNum, aSortDir));
+
+		sortingStatusChanged();
 	}
 
-	@Override
-	public int getColumnCount()
+	/**
+	 * Helper method that is triggered whenever any of the sort state changes.
+	 * <p>
+	 * Event notification will be sent out.
+	 */
+	private void sortingStatusChanged()
 	{
-		return (tableModel == null) ? 0 : tableModel.getColumnCount();
-	}
-
-	@Override
-	public String getColumnName(int column)
-	{
-		return tableModel.getColumnName(column);
-	}
-
-	@Override
-	public Class getColumnClass(int column)
-	{
-		return tableModel.getColumnClass(column);
-	}
-
-	@Override
-	public boolean isCellEditable(int row, int column)
-	{
-		return tableModel.isCellEditable(modelIndex(row), column);
-	}
-
-	@Override
-	public Object getValueAt(int row, int column)
-	{
-		return tableModel.getValueAt(modelIndex(row), column);
-	}
-
-	@Override
-	public void setValueAt(Object aValue, int row, int column)
-	{
-		tableModel.setValueAt(aValue, modelIndex(row), column);
-	}
-	
-	
-	public void setSortingEnabled(boolean aBool)
-	{
-		isSortEnabled = aBool;
-		
 		clearSortingState();
+		fireTableDataChanged();
+		if (refTableHeader != null)
+			refTableHeader.repaint();
 	}
-	
-	
 
 	// Helper classes
 
-	private class Row implements Comparable
+	private class Row implements Comparable<Row>
 	{
-		private int modelIndex;
+		// Attributes
+		private final int modelIndex;
 
-		public Row(int index)
+		/** Standard Constructor */
+		public Row(int aIndex)
 		{
-			this.modelIndex = index;
+			modelIndex = aIndex;
 		}
 
 		@Override
-		public int compareTo(Object o)
+		@SuppressWarnings("unchecked")
+		public int compareTo(Row aRow)
 		{
 			int row1 = modelIndex;
-			int row2 = ((Row)o).modelIndex;
+			int row2 = aRow.modelIndex;
 
-			for (Iterator it = sortingColumns.iterator(); it.hasNext();)
+			for (Directive aDirective : sortingColumnL)
 			{
-				Directive directive = (Directive)it.next();
-				int column = directive.column;
-				Object o1 = tableModel.getValueAt(row1, column);
-				Object o2 = tableModel.getValueAt(row2, column);
+				int column = aDirective.column;
+				Object o1 = refTableModel.getValueAt(row1, column);
+				Object o2 = refTableModel.getValueAt(row2, column);
 
 				int comparison = 0;
 				// Define null less than everything, except null.
 				if (o1 == null && o2 == null)
-				{
 					comparison = 0;
-				}
 				else if (o1 == null)
-				{
 					comparison = -1;
-				}
 				else if (o2 == null)
-				{
 					comparison = 1;
-				}
 				else
-				{
-					comparison = getComparator(column).compare(o1, o2);
-				}
+					comparison = ((Comparator<Object>) getComparator(column)).compare(o1, o2);
+
 				if (comparison != 0)
-				{
-					return directive.direction == DESCENDING ? -comparison : comparison;
-				}
+					return aDirective.sortDir == SortDir.Descending ? -comparison : comparison;
 			}
 			return 0;
 		}
@@ -455,7 +602,8 @@ public class TableSorter extends AbstractTableModel
 			// which can be a performance problem for large tables. The last
 			// clause avoids this problem.
 			int column = e.getColumn();
-			if (e.getFirstRow() == e.getLastRow() && column != TableModelEvent.ALL_COLUMNS && getSortingStatus(column) == NOT_SORTED && modelToView != null)
+			if (e.getFirstRow() == e.getLastRow() && column != TableModelEvent.ALL_COLUMNS
+					&& getSortDir(column) == SortDir.NotSorted && modelToView != null)
 			{
 				int viewIndex = getModelToView()[e.getFirstRow()];
 				fireTableChanged(new TableModelEvent(TableSorter.this, viewIndex, viewIndex, column, e.getType()));
@@ -473,145 +621,76 @@ public class TableSorter extends AbstractTableModel
 	private class MouseHandler extends MouseAdapter
 	{
 		@Override
-		public void mouseClicked(MouseEvent e)
+		public void mouseClicked(MouseEvent aEvent)
 		{
-			JTableHeader h = (JTableHeader)e.getSource();
-			TableColumnModel columnModel = h.getColumnModel();
-			int viewColumn = columnModel.getColumnIndexAtX(e.getX());
-			int column = columnModel.getColumn(viewColumn).getModelIndex();
-
 			// Bail if sorting is disabled
 			if (isSortEnabled == false)
 				return;
-			
-			if (column != -1)
-			{
-				int status = getSortingStatus(column);
-				if (!e.isControlDown())
-				{
-					cancelSorting();
-				}
 
-				// // Cycle the sorting states through {NOT_SORTED, ASCENDING,
-				// DESCENDING} or
-				// // {NOT_SORTED, DESCENDING, ASCENDING} depending on whether shift
-				// is pressed.
-				// status = status + (e.isShiftDown() ? -1 : 1);
-				// status = (status + 4) % 3 - 1; // signed mod, returning {-1, 0,
-				// 1}
-				if (status == ASCENDING)
-					status = DESCENDING;
-				else
-					status = ASCENDING;
-				setSortingStatus(column, status);
-			}
-		}
-	}
+			// Bail if no view column
+			JTableHeader h = (JTableHeader) aEvent.getSource();
+			TableColumnModel columnModel = h.getColumnModel();
+			int viewColumn = columnModel.getColumnIndexAtX(aEvent.getX());
+			if (viewColumn == -1)
+				return;
 
-	private static class Arrow implements Icon
-	{
-		private boolean descending;
-		private int size;
-		private int priority;
+			// Bail if no model column
+			int column = columnModel.getColumn(viewColumn).getModelIndex();
+			if (column == -1)
+				return;
 
-		public Arrow(boolean descending, int size, int priority)
-		{
-			this.descending = descending;
-			this.size = size;
-			this.priority = priority;
-		}
+			// Save off the current sort direction
+			var prevSortDir = getSortDir(column);
 
-		@Override
-		public void paintIcon(Component c, Graphics g, int x, int y)
-		{
-			Color color = c == null ? Color.GRAY : c.getBackground();
-			// In a compound sort, make each succesive triangle 20%
-			// smaller than the previous one.
-			int dx = (int)(size / 2 * Math.pow(0.8, priority));
-			int dy = descending ? dx : -dx;
-			// Align icon (roughly) with font baseline.
-			y = y + 5 * size / 6 + (descending ? -dy : 0);
-			int shift = descending ? 1 : -1;
-			g.translate(x, y);
+			// Clear all sort status if CTRL or SHIFT are not pressed
+			if (aEvent.isControlDown() == false && aEvent.isShiftDown() == false)
+				cancelSorting();
 
-			// Right diagonal.
-			g.setColor(color.darker());
-			g.drawLine(dx / 2, dy, 0, 0);
-			g.drawLine(dx / 2, dy + shift, 0, shift);
+			// Alternate between Ascending, Descending sorting
+			var nextSortDir = SortDir.Ascending;
+			if (prevSortDir == SortDir.Ascending)
+				nextSortDir = SortDir.Descending;
 
-			// Left diagonal.
-			g.setColor(color.brighter());
-			g.drawLine(dx / 2, dy, dx, 0);
-			g.drawLine(dx / 2, dy + shift, dx, shift);
+			// If SHIFT is pressed then clear the sorting status
+			if (aEvent.isShiftDown() == true)
+				nextSortDir = SortDir.NotSorted;
 
-			// Horizontal line.
-			if (descending)
-			{
-				g.setColor(color.darker().darker());
-			}
-			else
-			{
-				g.setColor(color.brighter().brighter());
-			}
-			g.drawLine(dx, 0, 0, 0);
-
-			g.setColor(color);
-			g.translate(-x, -y);
-		}
-
-		@Override
-		public int getIconWidth()
-		{
-			return size;
-		}
-
-		@Override
-		public int getIconHeight()
-		{
-			return size;
+			setSortDir(column, nextSortDir);
 		}
 	}
 
 	private class SortableHeaderRenderer implements TableCellRenderer
 	{
-		private TableCellRenderer tableCellRenderer;
+		// Attributes
+		private final TableCellRenderer tableCellRenderer;
 
-		public SortableHeaderRenderer(TableCellRenderer tableCellRenderer)
+		/** Standard Constructor */
+		public SortableHeaderRenderer(TableCellRenderer aTableCellRenderer)
 		{
-			this.tableCellRenderer = tableCellRenderer;
+			tableCellRenderer = aTableCellRenderer;
 		}
 
 		@Override
-		public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column)
+		public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
+				int row, int column)
 		{
-			Component c = tableCellRenderer.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-			if (c instanceof JLabel)
+			var tmpComp = tableCellRenderer.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+			if (tmpComp instanceof JLabel aLabel)
 			{
-				JLabel l = (JLabel)c;
-				l.setHorizontalTextPosition(JLabel.LEFT);
+				aLabel.setHorizontalTextPosition(JLabel.LEFT);
 				int modelColumn = table.convertColumnIndexToModel(column);
-				l.setIcon(getHeaderRendererIcon(modelColumn, l.getFont().getSize()));
+				aLabel.setIcon(getHeaderRendererIcon(modelColumn, aLabel.getFont().getSize()));
 			}
-			return c;
+			return tmpComp;
 		}
 
-		/*
-		 * public void setEnabled(boolean aBool) {
-		 * getTableCellRendererComponent.setEnabled(aBool);
-		 * 
-		 * }
-		 */
 	}
 
-	private static class Directive
+	/**
+	 * Record that holds the state of a specific column and it's associated sort direction.
+	 */
+	private static record Directive(int column, SortDir sortDir)
 	{
-		private int column;
-		private int direction;
-
-		public Directive(int column, int direction)
-		{
-			this.column = column;
-			this.direction = direction;
-		}
 	}
+
 }

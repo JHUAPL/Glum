@@ -1,11 +1,25 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.gui.component.banner;
 
 import java.awt.*;
-import java.awt.geom.*;
-import java.util.*;
-import javax.swing.*;
+import java.awt.geom.Rectangle2D;
+import java.util.Collection;
 
-import glum.gui.*;
+import javax.swing.JComponent;
+
+import glum.io.ParseUtil;
 import glum.io.token.MatchTokenizer;
 import glum.io.token.Tokenizer;
 
@@ -37,7 +51,7 @@ public class Banner extends JComponent
 		double sX, sY, offSetY;
 
 		super.paintComponent(g);
-		g2d = (Graphics2D)g;
+		g2d = (Graphics2D) g;
 
 		// Determine the window boundaries
 		winW = getWidth();
@@ -72,7 +86,7 @@ public class Banner extends JComponent
 		sY = winH / 2.0 - msgH / 2.0;
 		g2d.setFont(myConfig.font);
 		g2d.setColor(myConfig.fgColor);
-		g2d.drawString(displayMsg, (int)sX, (int)(sY + offSetY));
+		g2d.drawString(displayMsg, (int) sX, (int) (sY + offSetY));
 	}
 
 	/**
@@ -102,8 +116,8 @@ public class Banner extends JComponent
 	}
 
 	/**
-	 * Utility method that converts a string to a BannerConfig. Eventually this method class should be
-	 * moved to a utility class of sorts.
+	 * Utility method that converts a string to a BannerConfig. Eventually this method class should be moved to a utility
+	 * class of sorts.
 	 */
 	public static BannerConfig readBannerConfig(String strLine)
 	{
@@ -128,7 +142,7 @@ public class Banner extends JComponent
 		for (String aInstr : instrSet)
 		{
 			parmSet = parmTokenizer.getTokens(aInstr);
-			parms = parmSet.toArray(new String[] {""});
+			parms = parmSet.toArray(new String[] { "" });
 
 			if (parms.length == 0)
 			{
@@ -152,15 +166,15 @@ public class Banner extends JComponent
 
 				size = 12;
 				if (parms.length > 2)
-					size = GuiUtil.readInt(parms[2], 12);
+					size = ParseUtil.readInt(parms[2], 12);
 
 				bold = false;
 				if (parms.length > 3)
-					bold = GuiUtil.readBoolean(parms[3], false);
+					bold = ParseUtil.readBoolean(parms[3], false);
 
 				italic = false;
 				if (parms.length > 4)
-					italic = GuiUtil.readBoolean(parms[4], false);
+					italic = ParseUtil.readBoolean(parms[4], false);
 
 				style = 0;
 				if (bold == false && italic == false)
@@ -176,22 +190,22 @@ public class Banner extends JComponent
 			{
 				int r, g, b;
 
-				r = GuiUtil.readRangeInt(parms[1], 0, 255, 255);
-				g = GuiUtil.readRangeInt(parms[2], 0, 255, 255);
-				b = GuiUtil.readRangeInt(parms[3], 0, 255, 255);
+				r = ParseUtil.readRangeInt(parms[1], 0, 255, 255);
+				g = ParseUtil.readRangeInt(parms[2], 0, 255, 255);
+				b = ParseUtil.readRangeInt(parms[3], 0, 255, 255);
 				aConfig.fgColor = new Color(r, g, b);
 			}
 			else if (parms[0].equalsIgnoreCase("bgColor") == true && parms.length >= 4)
 			{
 				int r, g, b, a;
 
-				r = GuiUtil.readRangeInt(parms[1], 0, 255, 255);
-				g = GuiUtil.readRangeInt(parms[2], 0, 255, 255);
-				b = GuiUtil.readRangeInt(parms[3], 0, 255, 255);
+				r = ParseUtil.readRangeInt(parms[1], 0, 255, 255);
+				g = ParseUtil.readRangeInt(parms[2], 0, 255, 255);
+				b = ParseUtil.readRangeInt(parms[3], 0, 255, 255);
 
 				a = 255;
 				if (parms.length > 4)
-					a = GuiUtil.readRangeInt(parms[4], 0, 255, 255);
+					a = ParseUtil.readRangeInt(parms[4], 0, 255, 255);
 
 				aConfig.bgColor = new Color(r, g, b, a);
 			}
@@ -199,20 +213,20 @@ public class Banner extends JComponent
 			{
 				int r, g, b;
 
-				r = GuiUtil.readRangeInt(parms[1], 0, 255, 255);
-				g = GuiUtil.readRangeInt(parms[2], 0, 255, 255);
-				b = GuiUtil.readRangeInt(parms[3], 0, 255, 255);
+				r = ParseUtil.readRangeInt(parms[1], 0, 255, 255);
+				g = ParseUtil.readRangeInt(parms[2], 0, 255, 255);
+				b = ParseUtil.readRangeInt(parms[3], 0, 255, 255);
 				aConfig.borderColor = new Color(r, g, b);
 
 				if (parms.length > 4)
-					aConfig.borderWidth = GuiUtil.readRangeInt(parms[4], 0, 10, 0);
+					aConfig.borderWidth = ParseUtil.readRangeInt(parms[4], 0, 10, 0);
 
 				if (parms.length > 5)
-					aConfig.borderPad = GuiUtil.readRangeInt(parms[5], -20, 20, 0);
+					aConfig.borderPad = ParseUtil.readRangeInt(parms[5], -20, 20, 0);
 			}
 			else if (parms[0].equalsIgnoreCase("repeatMsg") == true && parms.length == 2)
 			{
-				aConfig.numRepeats = GuiUtil.readRangeInt(parms[1], -1, 100, 0);
+				aConfig.numRepeats = ParseUtil.readRangeInt(parms[1], -1, 100, 0);
 			}
 		}
 

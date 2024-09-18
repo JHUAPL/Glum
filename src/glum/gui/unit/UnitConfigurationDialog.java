@@ -1,14 +1,26 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.gui.unit;
 
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.List;
+import java.util.ArrayList;
 
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
-import javax.swing.table.*;
 
 import glum.gui.FocusUtil;
 import glum.gui.GuiUtil;
@@ -20,10 +32,15 @@ import glum.unit.UnitListener;
 import glum.unit.UnitProvider;
 import net.miginfocom.swing.MigLayout;
 
+/**
+ * JDialog that allows for the configuration of UnitProviders.
+ *
+ * @author lopeznr1
+ */
 public class UnitConfigurationDialog extends JDialog implements ActionListener, ListSelectionListener, UnitListener
 {
 	// Gui Components
-	private ItemListPanel<UnitProvider> itemLP;
+	private ItemListPanel<UnitProvider, LookUp> itemLP;
 	private CardPanel<EditorPanel> editorPanel;
 	private JLabel titleL;
 	private JButton closeB;
@@ -31,6 +48,7 @@ public class UnitConfigurationDialog extends JDialog implements ActionListener, 
 	// State vars
 	private StaticItemProcessor<UnitProvider> itemProcessor;
 
+	/** Standard Constructor */
 	public UnitConfigurationDialog(JFrame aParentFrame)
 	{
 		// Make sure we call the parent
@@ -59,8 +77,6 @@ public class UnitConfigurationDialog extends JDialog implements ActionListener, 
 	 */
 	public void addEditorPanel(Class<?> aClass, EditorPanel aPanel)
 	{
-		Dimension aDim;
-
 		// Insanity check
 		if (aClass == null || aPanel == null)
 			return;
@@ -70,15 +86,15 @@ public class UnitConfigurationDialog extends JDialog implements ActionListener, 
 		editorPanel.switchToCard("null");
 		updateGui();
 
-		aDim = editorPanel.getMinimumSize();
+		var tmpDim = editorPanel.getMinimumSize();
 		for (EditorPanel evalPanel : editorPanel.getAllCards())
 		{
-			if (evalPanel.getMinimumSize().height > aDim.height)
-				aDim.height = evalPanel.getMinimumSize().height;
+			if (evalPanel.getMinimumSize().height > tmpDim.height)
+				tmpDim.height = evalPanel.getMinimumSize().height;
 		}
 
 		// Set the dialog to the best initial size
-		setSize(getPreferredSize().width, itemLP.getHeight() + closeB.getHeight() + titleL.getHeight() + aDim.height);
+		setSize(getPreferredSize().width, itemLP.getHeight() + closeB.getHeight() + titleL.getHeight() + tmpDim.height);
 	}
 
 	/**
@@ -86,8 +102,6 @@ public class UnitConfigurationDialog extends JDialog implements ActionListener, 
 	 */
 	public void addUnitProvider(UnitProvider aUnitProvider)
 	{
-		List<UnitProvider> itemList;
-
 		// Insanity check
 		if (aUnitProvider == null)
 			return;
@@ -96,10 +110,9 @@ public class UnitConfigurationDialog extends JDialog implements ActionListener, 
 		aUnitProvider.addListener(this);
 
 		// Update the table processor
-		itemList = itemProcessor.getItems();
-		itemList.add(aUnitProvider);
-		;
-		itemProcessor.setItems(itemList);
+		var itemL = new ArrayList<>(itemProcessor.getAllItems());
+		itemL.add(aUnitProvider);
+		itemProcessor.setItems(itemL);
 
 		// Update the dialog
 		updateTable();
@@ -108,9 +121,7 @@ public class UnitConfigurationDialog extends JDialog implements ActionListener, 
 	@Override
 	public void actionPerformed(ActionEvent aEvent)
 	{
-		Object source;
-
-		source = aEvent.getSource();
+		var source = aEvent.getSource();
 		if (source == closeB)
 		{
 			setVisible(false);
@@ -126,9 +137,7 @@ public class UnitConfigurationDialog extends JDialog implements ActionListener, 
 	@Override
 	public void valueChanged(ListSelectionEvent aEvent)
 	{
-		Object source;
-
-		source = aEvent.getSource();
+		var source = aEvent.getSource();
 		if (source == itemLP)
 		{
 			if (aEvent.getValueIsAdjusting() == true)
@@ -143,10 +152,6 @@ public class UnitConfigurationDialog extends JDialog implements ActionListener, 
 	 */
 	private void buildGuiArea()
 	{
-		QueryComposer<Lookup> aComposer;
-		ItemHandler<UnitProvider> itemHandler;
-		EditorPanel nullPanel;
-
 		setLayout(new MigLayout("", "[center,grow]", "2[]3[grow][fill,growprio 200][]"));
 
 		// Build the title label
@@ -154,20 +159,20 @@ public class UnitConfigurationDialog extends JDialog implements ActionListener, 
 		add("span,wrap", titleL);
 
 		// UnitProvider table
-		aComposer = new QueryComposer<Lookup>();
-		aComposer.addAttribute(Lookup.Key, String.class, "Type", null);
-		aComposer.addAttribute(Lookup.Value, String.class, "Value", null);
+		var tmpComposer = new QueryComposer<LookUp>();
+		tmpComposer.addAttribute(LookUp.Key, String.class, "Type", null);
+		tmpComposer.addAttribute(LookUp.Value, String.class, "Value", null);
 
-		itemHandler = new UnitProviderHandler(aComposer);
-		itemProcessor = new StaticItemProcessor<UnitProvider>();
+		var tmpIH = new UnitProviderHandler();
+		itemProcessor = new StaticItemProcessor<>();
 
-		itemLP = new ItemListPanel<UnitProvider>(itemHandler, itemProcessor, false, false);
+		itemLP = new ItemListPanel<>(tmpIH, itemProcessor, tmpComposer, false);
 		itemLP.addListSelectionListener(this);
 		itemLP.setSortingEnabled(false);
 		add("growx,growy,h 70::,span,wrap", itemLP);
 
 		// Form the editor area
-		nullPanel = new EditorPanel();
+		var nullPanel = new EditorPanel();
 		nullPanel.setPreferredSize(new Dimension(1, 1));
 
 		editorPanel = new CardPanel<EditorPanel>();
@@ -184,35 +189,29 @@ public class UnitConfigurationDialog extends JDialog implements ActionListener, 
 	 */
 	private void updateGui()
 	{
-		EditorPanel aPanel;
-		UnitProvider aUnitProvider;
-		Dimension aDim;
-		String cardName;
-
 		// Get the selected UnitProvider
-		aUnitProvider = itemLP.getSelectedItem();
+		var tmpUnitProvider = itemLP.getSelectedItem();
 
 		// Switch to the appropriate Editor
-		cardName = "null";
-		if (aUnitProvider != null)
-			cardName = "" + aUnitProvider.getClass();
+		var cardName = "null";
+		if (tmpUnitProvider != null)
+			cardName = "" + tmpUnitProvider.getClass();
 		editorPanel.switchToCard(cardName);
 
 		// Resize the editorPanel to be as compact as the active card
-		aPanel = editorPanel.getActiveCard();
-		aPanel.setUnitProvider(aUnitProvider);
-		aDim = aPanel.getPreferredSize();
+		var tmpPanel = editorPanel.getActiveCard();
+		tmpPanel.setUnitProvider(tmpUnitProvider);
+		var tmpDim = tmpPanel.getPreferredSize();
 //		System.out.println("minHeight: " + aDim.getHeight() + "   hmm: " + aPanel);
 
-		editorPanel.setMaximumSize(new Dimension(5000, aDim.height));
-		// Hack to get the editorPanel resize properly. Not sure why invalidate(), validate() do not work
+		editorPanel.setMaximumSize(new Dimension(5000, tmpDim.height));
+		// Hack to get the editorPanel resize properly. Not sure why invalidate(),
+		// validate() do not work
 		int aHeight = getHeight();
-		Runnable tmpRunnable1 = () -> setSize(getWidth(), aHeight - 1);
-		Runnable tmpRunnable2 = () -> setSize(getWidth(), aHeight);
-		SwingUtilities.invokeLater(tmpRunnable1);
-		SwingUtilities.invokeLater(tmpRunnable2);
-//		Runnable tmpRunnable1 = () -> editorPanel.invalidate();
-//		Runnable tmpRunnable2 = () -> editorPanel.validate();
+		SwingUtilities.invokeLater(() -> setSize(getWidth(), aHeight - 1));
+		SwingUtilities.invokeLater(() -> setSize(getWidth(), aHeight));
+//		SwingUtilities.invokeLater(() -> editorPanel.invalidate());
+//		SwingUtilities.invokeLater(() -> editorPanel.validate());
 //		invalidate();
 //		validate();
 	}
@@ -222,80 +221,81 @@ public class UnitConfigurationDialog extends JDialog implements ActionListener, 
 	 */
 	private void updateTable()
 	{
-		List<UnitProvider> itemList;
-		JTableHeader aTableHeader;
-		TableColumnModel aTableColumnModel;
-		TableColumn aTableColumn;
-		int aWidth, tmpWidth;
-		JLabel aLabel;
-
 		// Update myTable column[0] width
-		aWidth = 10;
-		aLabel = new JLabel("");
-		itemList = itemProcessor.getItems();
-		for (UnitProvider aUnitProvider : itemList)
+		var aWidth = 10;
+		var tmpLabel = new JLabel("");
+		var itemL = itemProcessor.getAllItems();
+		for (UnitProvider aUnitProvider : itemL)
 		{
-			aLabel.setText(aUnitProvider.getDisplayName());
-			tmpWidth = aLabel.getPreferredSize().width + 5;
+			tmpLabel.setText(aUnitProvider.getDisplayName());
+			var tmpWidth = tmpLabel.getPreferredSize().width + 5;
 			if (aWidth < tmpWidth)
 				aWidth = tmpWidth;
 		}
 
 		// Set sizing attributes of the column 1
-		aTableHeader = itemLP.getTable().getTableHeader();
-		aTableColumnModel = aTableHeader.getColumnModel();
-		aTableColumn = aTableColumnModel.getColumn(0);
-		aTableColumn.setResizable(false);
-		aTableColumn.setMinWidth(aWidth);
-		aTableColumn.setMaxWidth(aWidth);
-		aTableColumn.setPreferredWidth(aWidth);
+		var tmpTableHeader = itemLP.getTable().getTableHeader();
+		var tmpTableColumnModel = tmpTableHeader.getColumnModel();
+		var tmpTableColumn = tmpTableColumnModel.getColumn(0);
+		tmpTableColumn.setResizable(false);
+		tmpTableColumn.setMinWidth(aWidth);
+		tmpTableColumn.setMaxWidth(aWidth);
+		tmpTableColumn.setPreferredWidth(aWidth);
 	}
 
 	/**
-	 * Helper classes to aide with setting up the UnitProvider table
+	 * Enum which defines the types used to show a listing of configurable units.
+	 *
+	 * @author lopeznr1
 	 */
-	enum Lookup
+	enum LookUp
 	{
 		Key,
+
 		Value,
 	};
 
-	public class UnitProviderHandler extends BasicItemHandler<UnitProvider>
+	/**
+	 * Implementation of {@link ItemHandler} that allows for tabular access of {@link UnitProvider}s.
+	 *
+	 * @author lopeznr1
+	 */
+	public class UnitProviderHandler implements ItemHandler<UnitProvider, LookUp>
 	{
-		public UnitProviderHandler(QueryComposer<?> aComposer)
-		{
-			super(aComposer);
-		}
-
 		@Override
-		public Object getColumnValue(UnitProvider aItem, int aColNum)
+		public Object getValue(UnitProvider aItem, LookUp aEnum)
 		{
-			Enum<?> refKey;
-
-			// Insanity check
-			if (aColNum < 0 && aColNum >= fullAttributeList.size())
-				return null;
-
-			refKey = fullAttributeList.get(aColNum).refKey;
-			switch ((Lookup)refKey)
+			switch (aEnum)
 			{
 				case Key:
 					return aItem.getDisplayName();
 
 				case Value:
-					return aItem.getConfigName();
+					return getConfigName(aItem);
 
 				default:
 					break;
 			}
 
-			return null;
+			throw new RuntimeException("Unsupported enum:" + aEnum);
 		}
 
 		@Override
-		public void setColumnValue(UnitProvider aItem, int colNum, Object aValue)
+		public void setValue(UnitProvider aItem, LookUp aEnum, Object aValue)
 		{
-			throw new RuntimeException("Unsupported Operation.");
+			throw new RuntimeException("Unsupported enum:" + aEnum);
+		}
+
+		/**
+		 * Helper method that returns the configuration name to utilize.
+		 */
+		public String getConfigName(UnitProvider aUnitProvider)
+		{
+			var tmpUnit = aUnitProvider.getUnit();
+			if (tmpUnit == null)
+				return "None";
+
+			return tmpUnit.getConfigName();
 		}
 
 	}

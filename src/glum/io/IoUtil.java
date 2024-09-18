@@ -1,17 +1,33 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.io;
-
-import glum.task.*;
-import glum.zio.ZinStream;
-import glum.zio.ZoutStream;
 
 import java.io.*;
 import java.net.*;
 import java.nio.channels.Channel;
-import java.util.Base64;
-import java.util.Map;
+import java.util.*;
 
-import com.google.common.collect.Maps;
+import glum.task.ConsoleTask;
+import glum.task.Task;
+import glum.zio.ZinStream;
+import glum.zio.ZoutStream;
 
+/**
+ * Collection of various utility methods.
+ *
+ * @author lopeznr1
+ */
 public class IoUtil
 {
 	/**
@@ -19,27 +35,14 @@ public class IoUtil
 	 */
 	public static URL createURL(String aUrlStr)
 	{
-		URL retURL;
-
 		try
 		{
-			retURL = new URL(aUrlStr);
+			return new URL(aUrlStr);
 		}
-		catch(MalformedURLException e)
+		catch (MalformedURLException e)
 		{
-			retURL = null;
+			return null;
 		}
-
-		return retURL;
-	}
-
-	/**
-	 * Prints out the error msg followed by the stack trace.
-	 */
-	public static void dumpTrace(Exception aExp, String aMsg)
-	{
-		System.out.println(aMsg);
-		aExp.printStackTrace();
 	}
 
 	/**
@@ -54,7 +57,7 @@ public class IoUtil
 		{
 			aChannel.close();
 		}
-		catch(Exception aExp)
+		catch (Exception aExp)
 		{
 			aExp.printStackTrace();
 		}
@@ -72,7 +75,7 @@ public class IoUtil
 		{
 			aStream.close();
 		}
-		catch(Exception aExp)
+		catch (Exception aExp)
 		{
 			aExp.printStackTrace();
 		}
@@ -90,7 +93,7 @@ public class IoUtil
 		{
 			aStream.close();
 		}
-		catch(Exception aExp)
+		catch (Exception aExp)
 		{
 			aExp.printStackTrace();
 		}
@@ -108,7 +111,7 @@ public class IoUtil
 		{
 			aReader.close();
 		}
-		catch(Exception aExp)
+		catch (Exception aExp)
 		{
 			aExp.printStackTrace();
 		}
@@ -126,7 +129,7 @@ public class IoUtil
 		{
 			aWriter.close();
 		}
-		catch(Exception aExp)
+		catch (Exception aExp)
 		{
 			aExp.printStackTrace();
 		}
@@ -145,7 +148,7 @@ public class IoUtil
 		{
 			aStream.close();
 		}
-		catch(Exception aExp)
+		catch (Exception aExp)
 		{
 			aExp.printStackTrace();
 		}
@@ -163,9 +166,47 @@ public class IoUtil
 		{
 			aStream.close();
 		}
-		catch(Exception aExp)
+		catch (Exception aExp)
 		{
 			aExp.printStackTrace();
+		}
+	}
+
+	/**
+	 * Utility helper that will locate the next available {@link File} with a name closest to that of aFile.
+	 * <p>
+	 * The next available {@link File} is defined as a file that does not exist.
+	 * <p>
+	 * Names will be searched by appending an increasing index (starting from zero) onto the file name until a
+	 * {@link File} is located that does not exist (on the local file system).
+	 */
+	public static File locateNextAvailableFile(File aFile)
+	{
+		// If the File does not exist then just utilize it as is
+		if (aFile.exists() == false)
+			return aFile;
+
+		// Extract the path's components of interest
+		File basePath = aFile.getParentFile();
+		String baseName = aFile.getName();
+		String fileExt = "";
+
+		String tmpFileName = aFile.getName();
+		int tmpIdx = tmpFileName.lastIndexOf(".");
+		if (tmpIdx != -1 && tmpIdx != tmpFileName.length() - 1)
+		{
+			baseName = tmpFileName.substring(0, tmpIdx);
+			fileExt = tmpFileName.substring(tmpIdx);
+		}
+
+		int currIdx = 0;
+		while (true)
+		{
+			File tmpFile = new File(basePath, baseName + "." + currIdx + fileExt);
+			if (tmpFile.exists() == false)
+				return tmpFile;
+
+			currIdx++;
 		}
 	}
 
@@ -173,7 +214,7 @@ public class IoUtil
 	 * Downloads the content at aUrl and saves it to aFile. Before the file is downloaded, the connection is configured
 	 * with the specified property map. The download will be aborted if aTask is no longer active.
 	 */
-	public static boolean copyUrlToFile(Task aTask, URL aUrl, File aFile, Map<String, String> aPropertyMap)
+	public static boolean copyUrlToFile(Task aTask, URL aUrl, File aFile, Map<String, String> aPropertyM)
 	{
 		// Ensure we have a valid aTask
 		if (aTask == null)
@@ -193,10 +234,10 @@ public class IoUtil
 			aConnection.setReadTimeout(90 * 1000);
 
 			// Setup the various properties
-			if (aPropertyMap != null)
+			if (aPropertyM != null)
 			{
-				for (String aKey : aPropertyMap.keySet())
-					aConnection.setRequestProperty(aKey, aPropertyMap.get(aKey));
+				for (String aKey : aPropertyM.keySet())
+					aConnection.setRequestProperty(aKey, aPropertyM.get(aKey));
 			}
 
 			inStream = aConnection.getInputStream();
@@ -216,16 +257,16 @@ public class IoUtil
 				// Bail if aTask is aborted
 				if (aTask.isActive() == false)
 				{
-					aTask.infoAppendln("Download of file: " + aFile + " has been aborted!");
+					aTask.logRegln("Download of file: " + aFile + " has been aborted!");
 					return false;
 				}
 			}
 		}
-		catch(Exception aExp)
+		catch (Exception aExp)
 		{
-			aTask.infoAppendln("Exception:" + aExp);
-			aTask.infoAppendln("   URL:" + aUrl);
-			aTask.infoAppendln("   File:" + aFile);
+			aTask.logRegln("Exception:" + aExp);
+			aTask.logRegln("   URL:" + aUrl);
+			aTask.logRegln("   File:" + aFile);
 			aExp.printStackTrace();
 			return false;
 		}
@@ -261,13 +302,13 @@ public class IoUtil
 	 */
 	public static boolean copyUrlToFile(Task aTask, URL aUrl, File aFile, String aUsername, String aPassword)
 	{
-		String authStr = aUsername + ":" + aPassword;
+		var authStr = aUsername + ":" + aPassword;
 		authStr = Base64.getEncoder().encodeToString(authStr.getBytes());
 
-		Map<String, String> plainMap = Maps.newHashMap();
-		plainMap.put("Authorization", "Basic " + authStr);
+		var plainM = new HashMap<String, String>();
+		plainM.put("Authorization", "Basic " + authStr);
 
-		return copyUrlToFile(aTask, aUrl, aFile, plainMap);
+		return copyUrlToFile(aTask, aUrl, aFile, plainM);
 	}
 
 	/**
@@ -289,9 +330,8 @@ public class IoUtil
 		{
 			tmpUrl = aFile1.toURI().toURL();
 		}
-		catch(Exception aExp)
+		catch (Exception aExp)
 		{
-			System.out.println("Exception:" + aExp);
 			aExp.printStackTrace();
 			return false;
 		}
@@ -301,9 +341,8 @@ public class IoUtil
 
 	/**
 	 * Method to recursively delete all of the contents located in the specified directory.
-	 * <P>
+	 * <p>
 	 * Source: http://stackoverflow.com/questions/3775694/deleting-folder-from-java
-	 * <P>
 	 */
 	public static boolean deleteDirectory(File directory)
 	{
@@ -368,7 +407,8 @@ public class IoUtil
 
 		// Ensure the string size is less than 0x00FFFF
 		if (size >= 0x00FFFF)
-			throw new RuntimeException("Transformed UTF-8 string is too large! Max size: " + (0x00FFFF - 1) + "  Curr size:" + size);
+			throw new IOException(
+					"Transformed UTF-8 string is too large! Max size: " + (0x00FFFF - 1) + "  Curr size:" + size);
 
 		// Write out the string
 		aStream.writeShort(size & 0x00FFFF);
@@ -390,15 +430,16 @@ public class IoUtil
 			data = aStr.getBytes("UTF-8");
 			size = data.length;
 		}
-		catch(Exception aExp)
+		catch (Exception aExp)
 		{
 			throw new RuntimeException("UTF-8 Transform error.", aExp);
 		}
 
 		if (size >= 0x00FFFF)
-			throw new RuntimeException("Transformed UTF-8 string is too large! Max size: " + (0x00FFFF - 1) + "  Curr size:" + size);
+			throw new RuntimeException(
+					"Transformed UTF-8 string is too large! Max size: " + (0x00FFFF - 1) + "  Curr size:" + size);
 
-		return (short)(2 + data.length);
+		return (short) (2 + data.length);
 	}
 
 }

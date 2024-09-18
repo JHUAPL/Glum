@@ -1,58 +1,41 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.gui.panel.itemList.query;
 
-import java.util.*;
-
 import glum.database.QueryItem;
-import glum.gui.panel.itemList.BasicItemHandler;
+import glum.gui.panel.itemList.ItemHandler;
 
-public class QueryItemHandler<G1 extends QueryItem<?>> extends BasicItemHandler<G1>
+/**
+ * Implementation of {@link ItemHandler} that allows for tabular access of items that implement the {@link QueryItem}
+ * interface.
+ *
+ * @author lopeznr1
+ */
+public class QueryItemHandler<G1 extends QueryItem<G2>, G2 extends Enum<?>> implements ItemHandler<G1, G2>
 {
-	public QueryItemHandler(QueryComposer<?> aComposer)
+	@Override
+	public Object getValue(G1 aItem, G2 aEnum)
 	{
-		super(aComposer.getItems());
-	}
-
-	public QueryItemHandler(Collection<QueryAttribute> aQueryAttrList)
-	{
-		super(aQueryAttrList);
+		// Delegate
+		return aItem.getValue(aEnum);
 	}
 
 	@Override
-	public Object getColumnValue(G1 aObj, int colNum)
+	public void setValue(G1 aItem, G2 aEnum, Object aValue)
 	{
-		QueryItem<Enum<?>> aItem;
-
-		// Insanity check
-		if (colNum < 0 && colNum >= fullAttributeList.size())
-			return null;
-
-//		return aObj.getValue(fullAttributeList.get(colNum).refKey);
-		aItem = null;
-		if (aObj instanceof QueryItem)
-		{
-			aItem = (QueryItem<Enum<?>>)aObj;
-			return aItem.getValue(fullAttributeList.get(colNum).refKey);
-		}
-
-		return null;
-	}
-
-	@Override
-	public void setColumnValue(G1 aObj, int colNum, Object aValue)
-	{
-		QueryItem<Enum<?>> aItem;
-
-		// Insanity check
-		if (colNum < 0 && colNum >= fullAttributeList.size())
-			return;
-
-//		aObj.setValue(fullAttributeList.get(colNum).refKey, aValue);
-		aItem = null;
-		if (aObj instanceof QueryItem)
-		{
-			aItem = (QueryItem<Enum<?>>)aObj;
-			aItem.setValue(fullAttributeList.get(colNum).refKey, aValue);
-		}
+		// Delegate
+		aItem.setValue(aEnum, aValue);
 	}
 
 }

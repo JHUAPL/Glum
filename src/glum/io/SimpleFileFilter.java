@@ -1,23 +1,57 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.io;
 
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+
 import javax.swing.filechooser.FileFilter;
 
+/**
+ * Implementation of {@link FileFilter} used to gather files that have a matching file extension.
+ *
+ * @author lopeznr1
+ */
 public class SimpleFileFilter extends FileFilter implements java.io.FileFilter
 {
 	// State vars
-	private Collection<String> extensionList;
+	private ArrayList<String> extensionL;
 	private String description;
 	private boolean allowDirs;
 
+	/**
+	 * Standard Constructor
+	 *
+	 * @param aDescription
+	 *        Textual description of this filter.
+	 */
 	public SimpleFileFilter(String aDescription)
 	{
-		allowDirs = true;
+		extensionL = new ArrayList<String>();
 		description = aDescription;
-		extensionList = new LinkedList<String>();
+		allowDirs = true;
 	}
 
+	/**
+	 * Convenience Constructor
+	 *
+	 * @param aDescription
+	 *        Textual description of this filter.
+	 * @param aExtension
+	 *        A file extension to match against.
+	 */
 	public SimpleFileFilter(String aDescription, String aExtension)
 	{
 		this(aDescription);
@@ -30,15 +64,24 @@ public class SimpleFileFilter extends FileFilter implements java.io.FileFilter
 	public void addExtension(String aExtension)
 	{
 		if (aExtension != null)
-			extensionList.add(aExtension);
+			extensionL.add(aExtension);
 	}
-	
+
 	/**
 	 * Adds the collections of file extensions which should be allowed through this filter
 	 */
-	public void addExtensions(String... extArr)
+	public void addExtensions(String... aExtensionArr)
 	{
-		for (String aExtension : extArr)
+		for (String aExtension : aExtensionArr)
+			addExtension(aExtension);
+	}
+
+	/**
+	 * Adds the collections of file extensions which should be allowed through this filter
+	 */
+	public void addExtensions(Collection<String> aExtensionC)
+	{
+		for (String aExtension : aExtensionC)
 			addExtension(aExtension);
 	}
 
@@ -53,28 +96,25 @@ public class SimpleFileFilter extends FileFilter implements java.io.FileFilter
 	@Override
 	public boolean accept(File aFile)
 	{
-		String aStr, aFileName;
-		int aIndex;
-
 		// Allow directories if appropriate
 		if (aFile.isDirectory() == true)
 			return allowDirs;
 
 		// Retrieve the corresponding file name
-		aFileName = aFile.getName();
+		var tmpFileName = aFile.getName();
 
 		// Ensure the file has an extension
-		aIndex = aFileName.lastIndexOf('.');
-		if (aIndex == -1)
+		var tmpIdx = tmpFileName.lastIndexOf('.');
+		if (tmpIdx == -1)
 			return false;
 
 		// See if aFileName's extension matches any in extensionList
-		for (String aExt : extensionList)
+		for (String aExt : extensionL)
 		{
-			if (aFileName.length() > aExt.length())
+			if (tmpFileName.length() > aExt.length())
 			{
-				aStr = aFileName.substring(aFileName.length() - aExt.length());
-				if (aExt.equalsIgnoreCase(aStr) == true)
+				var tmpStr = tmpFileName.substring(tmpFileName.length() - aExt.length());
+				if (aExt.equalsIgnoreCase(tmpStr) == true)
 					return true;
 			}
 		}

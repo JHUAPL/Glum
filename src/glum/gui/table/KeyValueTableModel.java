@@ -1,36 +1,50 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.gui.table;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import javax.swing.table.AbstractTableModel;
 
-import com.google.common.collect.Lists;
-
+/**
+ * Implementation of {@link AbstractTableModel} for displaying key / value pairs.
+ *
+ * @author lopeznr1
+ */
 public class KeyValueTableModel extends AbstractTableModel
 {
-	private String[] columnNames;
-	private List<Map.Entry<String, String>> myList;
+	private String[] columnNameArr;
+	private List<Map.Entry<String, String>> workL;
 
 	/**
-	 * Constructor
+	 * Standard Constructor
 	 */
-	public KeyValueTableModel()
+	public KeyValueTableModel(String aKeyHeader, String aValueHeader)
 	{
-		this(null, null);
-	}
+		columnNameArr = new String[2];
+		columnNameArr[0] = "";
+		columnNameArr[1] = "";
 
-	public KeyValueTableModel(String keyHeader, String valueHeader)
-	{
-		columnNames = new String[2];
-		columnNames[0] = "";
-		columnNames[1] = "";
+		if (aKeyHeader != null)
+			columnNameArr[0] = aKeyHeader;
 
-		if (keyHeader != null)
-			columnNames[0] = keyHeader;
+		if (aValueHeader != null)
+			columnNameArr[1] = aValueHeader;
 
-		if (valueHeader != null)
-			columnNames[1] = valueHeader;
-
-		myList = Lists.newArrayList();
+		workL = new ArrayList<>();
 	}
 
 	/**
@@ -43,10 +57,10 @@ public class KeyValueTableModel extends AbstractTableModel
 		if (aMap.isEmpty() == true)
 			return;
 
-		startIndex = myList.size();
+		startIndex = workL.size();
 		endIndex = startIndex + aMap.size();
 
-		myList.addAll(aMap.entrySet());
+		workL.addAll(aMap.entrySet());
 
 		fireTableRowsInserted(startIndex, endIndex);
 	}
@@ -58,11 +72,11 @@ public class KeyValueTableModel extends AbstractTableModel
 	{
 		int endIndex;
 
-		if (myList.isEmpty() == true)
+		if (workL.isEmpty() == true)
 			return;
 
-		endIndex = myList.size() - 1;
-		myList.clear();
+		endIndex = workL.size() - 1;
+		workL.clear();
 
 		fireTableRowsDeleted(0, endIndex);
 	}
@@ -70,44 +84,44 @@ public class KeyValueTableModel extends AbstractTableModel
 	@Override
 	public int getColumnCount()
 	{
-		return columnNames.length;
+		return columnNameArr.length;
 	}
 
 	@Override
 	public int getRowCount()
 	{
-		return myList.size();
+		return workL.size();
 	}
 
 	@Override
-	public String getColumnName(int col)
+	public String getColumnName(int aCol)
 	{
-		return columnNames[col];
+		return columnNameArr[aCol];
 	}
 
 	@Override
-	public Object getValueAt(int row, int col)
+	public Object getValueAt(int aRow, int aCol)
 	{
-		if (row < 0 || row >= myList.size())
+		if (aRow < 0 || aRow >= workL.size())
 			return null;
 
 		// DataProviderShell Enabled
-		if (col == 0)
-			return myList.get(row).getKey();
-		else if (col == 1)
-			return myList.get(row).getValue();
+		if (aCol == 0)
+			return workL.get(aRow).getKey();
+		else if (aCol == 1)
+			return workL.get(aRow).getValue();
 
 		return null;
 	}
 
 	@Override
-	public Class<?> getColumnClass(int col)
+	public Class<?> getColumnClass(int aCol)
 	{
 		return String.class;
 	}
 
 	@Override
-	public boolean isCellEditable(int row, int col)
+	public boolean isCellEditable(int aRow, int aCol)
 	{
 		// Note that the data/cell address is constant,
 		// no matter where the cell appears on screen.

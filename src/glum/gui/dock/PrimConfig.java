@@ -1,211 +1,196 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.gui.dock;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
-
-import com.google.common.collect.Maps;
 
 import glum.io.IoUtil;
 
+/**
+ * Container which holds a mapping of keys (String) to a bunch of primitive objects.
+ * <p>
+ * Serialization of content is supported via {@link #readBin(DataInputStream)} and {@link #writeBin(DataOutputStream)}
+ *
+ * @author lopeznr1
+ */
 public class PrimConfig
 {
 	// Constants
-	public static final byte CODE_BOOL   = 1;
-	public static final byte CODE_INT    = 10;
-	public static final byte CODE_LONG   = 11;
-	public static final byte CODE_SHORT  = 12;	
-	public static final byte CODE_FLOAT  = 13;
+	public static final byte CODE_BOOL = 1;
+	public static final byte CODE_INT = 10;
+	public static final byte CODE_LONG = 11;
+	public static final byte CODE_SHORT = 12;
+	public static final byte CODE_FLOAT = 13;
 	public static final byte CODE_DOUBLE = 14;
 	public static final byte CODE_STRING = 20;
 
 	// State vars
-	protected Map<String, Object> mySingletonMap;
-	
-	/**
-	 * Container which holds a mapping of keys (String) to a bunch
-	 * of primitive objects. 
-	 */
+	protected Map<String, Object> mySingletonM;
+
+	/** Standard Constructor */
 	public PrimConfig()
 	{
-		mySingletonMap = Maps.newLinkedHashMap();
+		mySingletonM = new LinkedHashMap<>();
 	}
 
 	/**
-	 * Returns the boolean associated with aKey
-	 * If no such value is found then defaultVal is returned.
+	 * Returns the boolean associated with aKey If no such value is found then defaultVal is returned.
 	 */
-	public boolean getBoolean(String aKey, boolean defaultVal)
+	public boolean getBoolean(String aKey, boolean aDefaultVal)
 	{
-		Object aValue;
-
 		// If no value associated with the key then return defaultVal
-		aValue = mySingletonMap.get(aKey);
-		if (aValue == null || aValue.getClass() != Boolean.class)
-			return defaultVal;
+		var tmpVal = mySingletonM.get(aKey);
+		if (tmpVal == null || tmpVal.getClass() != Boolean.class)
+			return aDefaultVal;
 
-		return (Boolean)aValue;
+		return (Boolean) tmpVal;
 	}
-	
+
 	/**
-	 * Returns the int associated with aKey
-	 * If no such value is found then defaultVal is returned.
+	 * Returns the int associated with aKey If no such value is found then defaultVal is returned.
 	 */
-	public int getInt(String aKey, int defaultVal)
+	public int getInt(String aKey, int aDefaultVal)
 	{
-		Object aValue;
-
 		// If no value associated with the key then return defaultVal
-		aValue = mySingletonMap.get(aKey);
-		if (aValue == null || aValue.getClass() != Integer.class)
-			return defaultVal;
+		var tmpVal = mySingletonM.get(aKey);
+		if (tmpVal == null || tmpVal.getClass() != Integer.class)
+			return aDefaultVal;
 
-		return (Integer)aValue;
+		return (Integer) tmpVal;
 	}
-	
+
 	/**
-	 * Returns the long associated with aKey
-	 * If no such value is found then defaultVal is returned.
+	 * Returns the long associated with aKey If no such value is found then defaultVal is returned.
 	 */
-	public long getLong(String aKey, long defaultVal)
+	public long getLong(String aKey, long aDefaultVal)
 	{
-		Object aValue;
-
 		// If no value associated with the key then return defaultVal
-		aValue = mySingletonMap.get(aKey);
-		if (aValue == null || aValue.getClass() != Long.class)
-			return defaultVal;
+		var tmpVal = mySingletonM.get(aKey);
+		if (tmpVal == null || tmpVal.getClass() != Long.class)
+			return aDefaultVal;
 
-		return (Long)aValue;
+		return (Long) tmpVal;
 	}
-	
+
 	/**
-	 * Returns the short associated with aKey
-	 * If no such value is found then defaultVal is returned.
+	 * Returns the short associated with aKey If no such value is found then defaultVal is returned.
 	 */
-	public short getShort(String aKey, short defaultVal)
+	public short getShort(String aKey, short aDefaultVal)
 	{
-		Object aValue;
-
 		// If no value associated with the key then return defaultVal
-		aValue = mySingletonMap.get(aKey);
-		if (aValue == null || aValue.getClass() != Short.class)
-			return defaultVal;
+		var tmpVal = mySingletonM.get(aKey);
+		if (tmpVal == null || tmpVal.getClass() != Short.class)
+			return aDefaultVal;
 
-		return (Short)aValue;
+		return (Short) tmpVal;
 	}
 
 	/**
-	 * Returns the float associated with aKey
-	 * If no such value is found then defaultVal is returned.
+	 * Returns the float associated with aKey If no such value is found then defaultVal is returned.
 	 */
-	public float getFloat(String aKey, float defaultVal)
+	public float getFloat(String aKey, float aDefaultVal)
 	{
-		Object aValue;
-
 		// If no value associated with the key then return defaultVal
-		aValue = mySingletonMap.get(aKey);
-		if (aValue == null || aValue.getClass() != Float.class)
-			return defaultVal;
+		var tmpVal = mySingletonM.get(aKey);
+		if (tmpVal == null || tmpVal.getClass() != Float.class)
+			return aDefaultVal;
 
-		return (Float)aValue;
+		return (Float) tmpVal;
 	}
 
 	/**
-	 * Returns the double associated with aKey
-	 * If no such value is found then defaultVal is returned.
+	 * Returns the double associated with aKey If no such value is found then defaultVal is returned.
 	 */
-	public double getDouble(String aKey, double defaultVal)
+	public double getDouble(String aKey, double aDefaultVal)
 	{
-		Object aValue;
-
 		// If no value associated with the key then return defaultVal
-		aValue = mySingletonMap.get(aKey);
-		if (aValue == null || aValue.getClass() != Double.class)
-			return defaultVal;
+		var tmpVal = mySingletonM.get(aKey);
+		if (tmpVal == null || tmpVal.getClass() != Double.class)
+			return aDefaultVal;
 
-		return (Double)aValue;
+		return (Double) tmpVal;
 	}
 
 	/**
-	 * Returns the String associated with aKey
-	 * If no such value is found then defaultVal is returned.
+	 * Returns the String associated with aKey If no such value is found then defaultVal is returned.
 	 */
-	public String getString(String aKey, String defaultVal)
+	public String getString(String aKey, String aDefaultVal)
 	{
-		Object aValue;
-
 		// If no value associated with the key then return defaultVal
-		aValue = mySingletonMap.get(aKey);
-		if (aValue == null || aValue.getClass() != String.class)
-			return defaultVal;
+		var tmpVal = mySingletonM.get(aKey);
+		if (tmpVal == null || tmpVal.getClass() != String.class)
+			return aDefaultVal;
 
-		return (String)aValue;
+		return (String) tmpVal;
 	}
 
 	/**
-	 * Associates aVal with aKey. Note this will overwrite any
-	 * previous association.
+	 * Associates aVal with aKey. Note this will overwrite any previous association.
 	 */
 	public void setBoolean(String aKey, boolean aValue)
 	{
-		mySingletonMap.put(aKey, aValue);
+		mySingletonM.put(aKey, aValue);
 	}
 
 	/**
-	 * Associates aVal with aKey. Note this will overwrite any
-	 * previous association.
+	 * Associates aVal with aKey. Note this will overwrite any previous association.
 	 */
 	public void setInt(String aKey, int aValue)
 	{
-		mySingletonMap.put(aKey, aValue);
+		mySingletonM.put(aKey, aValue);
 	}
 
 	/**
-	 * Associates aVal with aKey. Note this will overwrite any
-	 * previous association.
+	 * Associates aVal with aKey. Note this will overwrite any previous association.
 	 */
 	public void setLong(String aKey, long aValue)
 	{
-		mySingletonMap.put(aKey, aValue);
+		mySingletonM.put(aKey, aValue);
 	}
 
 	/**
-	 * Associates aVal with aKey. Note this will overwrite any
-	 * previous association.
+	 * Associates aVal with aKey. Note this will overwrite any previous association.
 	 */
 	public void setShort(String aKey, short aValue)
 	{
-		mySingletonMap.put(aKey, aValue);
+		mySingletonM.put(aKey, aValue);
 	}
 
 	/**
-	 * Associates aVal with aKey. Note this will overwrite any
-	 * previous association.
+	 * Associates aVal with aKey. Note this will overwrite any previous association.
 	 */
 	public void setFloat(String aKey, float aValue)
 	{
-		mySingletonMap.put(aKey, aValue);
+		mySingletonM.put(aKey, aValue);
 	}
 
 	/**
-	 * Associates aVal with aKey. Note this will overwrite any
-	 * previous association.
+	 * Associates aVal with aKey. Note this will overwrite any previous association.
 	 */
 	public void setDouble(String aKey, double aValue)
 	{
-		mySingletonMap.put(aKey, aValue);
+		mySingletonM.put(aKey, aValue);
 	}
 
 	/**
-	 * Associates aVal with aKey. Note this will overwrite any
-	 * previous association.
+	 * Associates aVal with aKey. Note this will overwrite any previous association.
 	 */
 	public void setString(String aKey, String aValue)
 	{
-		mySingletonMap.put(aKey, aValue);
+		mySingletonM.put(aKey, aValue);
 	}
 
 	/**
@@ -213,50 +198,46 @@ public class PrimConfig
 	 */
 	public void readBin(DataInputStream aStream) throws IOException
 	{
-		int numItems;
-		String aKey;
-		byte aType;
+		mySingletonM.clear();
 
-		mySingletonMap.clear();
-
-		numItems = aStream.readInt();
+		var numItems = aStream.readInt();
 		for (int c1 = 0; c1 < numItems; c1++)
 		{
-			aKey = IoUtil.readString(aStream);
-			aType = aStream.readByte();
-			
-			switch(aType)
+			var tmpKey = IoUtil.readString(aStream);
+			var tmpType = aStream.readByte();
+
+			switch (tmpType)
 			{
 				case CODE_BOOL:
-					mySingletonMap.put(aKey, aStream.readBoolean());
+					mySingletonM.put(tmpKey, aStream.readBoolean());
 					break;
-					
+
 				case CODE_INT:
-					mySingletonMap.put(aKey, aStream.readInt());
+					mySingletonM.put(tmpKey, aStream.readInt());
 					break;
-				
+
 				case CODE_LONG:
-					mySingletonMap.put(aKey, aStream.readLong());
+					mySingletonM.put(tmpKey, aStream.readLong());
 					break;
-					
+
 				case CODE_SHORT:
-					mySingletonMap.put(aKey, aStream.readShort());
+					mySingletonM.put(tmpKey, aStream.readShort());
 					break;
-				
+
 				case CODE_FLOAT:
-					mySingletonMap.put(aKey, aStream.readFloat());
+					mySingletonM.put(tmpKey, aStream.readFloat());
 					break;
-					
+
 				case CODE_DOUBLE:
-					mySingletonMap.put(aKey, aStream.readDouble());
+					mySingletonM.put(tmpKey, aStream.readDouble());
 					break;
-				
+
 				case CODE_STRING:
-					mySingletonMap.put(aKey, IoUtil.readString(aStream));
+					mySingletonM.put(tmpKey, IoUtil.readString(aStream));
 					break;
-					
+
 				default:
-					throw new RuntimeException("Unreconnized type: " + aType);
+					throw new RuntimeException("Unreconnized type: " + tmpType);
 			}
 		}
 	}
@@ -266,55 +247,52 @@ public class PrimConfig
 	 */
 	public void writeBin(DataOutputStream aStream) throws IOException
 	{
-		Set<String> keySet;
-		Object aVal;
-		
-		keySet = mySingletonMap.keySet();
-		
-		aStream.writeInt(keySet.size());
-		for (String aKey : keySet)
+		var keyS = mySingletonM.keySet();
+
+		aStream.writeInt(keyS.size());
+		for (String aKey : keyS)
 		{
 			IoUtil.writeString(aStream, aKey);
-			
-			aVal = mySingletonMap.get(aKey);
-			if (aVal instanceof Boolean)
+
+			var tmpVal = mySingletonM.get(aKey);
+			if (tmpVal instanceof Boolean)
 			{
 				aStream.writeByte(CODE_BOOL);
-				aStream.writeBoolean((Boolean)aVal);
+				aStream.writeBoolean((Boolean) tmpVal);
 			}
-			else if (aVal instanceof Integer)
+			else if (tmpVal instanceof Integer)
 			{
 				aStream.writeByte(CODE_INT);
-				aStream.writeInt((Integer)aVal);
+				aStream.writeInt((Integer) tmpVal);
 			}
-			else if (aVal instanceof Long)
+			else if (tmpVal instanceof Long)
 			{
 				aStream.writeByte(CODE_LONG);
-				aStream.writeLong((Long)aVal);
+				aStream.writeLong((Long) tmpVal);
 			}
-			else if (aVal instanceof Short)
+			else if (tmpVal instanceof Short)
 			{
 				aStream.writeByte(CODE_SHORT);
-				aStream.writeLong((Short)aVal);
+				aStream.writeLong((Short) tmpVal);
 			}
-			else if (aVal instanceof Float)
+			else if (tmpVal instanceof Float)
 			{
 				aStream.writeByte(CODE_FLOAT);
-				aStream.writeFloat((Float)aVal);
+				aStream.writeFloat((Float) tmpVal);
 			}
-			else if (aVal instanceof Double)
+			else if (tmpVal instanceof Double)
 			{
 				aStream.writeByte(CODE_DOUBLE);
-				aStream.writeDouble((Double)aVal);
+				aStream.writeDouble((Double) tmpVal);
 			}
-			else if (aVal instanceof String)
+			else if (tmpVal instanceof String)
 			{
 				aStream.writeByte(CODE_STRING);
-				IoUtil.writeString(aStream, (String)aVal);
+				IoUtil.writeString(aStream, (String) tmpVal);
 			}
 			else
 			{
-				throw new RuntimeException("Unsupported Object: " + aVal);
+				throw new RuntimeException("Unsupported Object: " + tmpVal);
 			}
 		}
 	}

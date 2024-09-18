@@ -1,57 +1,60 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.unit;
 
-import glum.gui.GuiUtil;
+import java.text.DecimalFormat;
+import java.text.Format;
 
-import java.text.*;
+import glum.io.ParseUtil;
 
+/**
+ * Implementation of {@link Unit} for displaying decimal values.
+ *
+ * @author lopeznr1
+ */
 public class NumberUnit implements Unit
 {
 	// State vars
-	protected DecimalFormat format;
+	protected DecimalFormat dispFormat;
 	protected String nanStr;
 	protected String fullLabel;
 	protected String shortLabel;
 	protected double conversionFactor;
 
-	/**
-	 * Constructor
-	 */
+	/** Standard Constructor */
+	public NumberUnit(String aFullLabel, String aShortLabel, double aConversionFactor, DecimalFormat aDispFormat)
+	{
+		nanStr = "---";
+		fullLabel = aFullLabel;
+		shortLabel = aShortLabel;
+		conversionFactor = aConversionFactor;
+		dispFormat = aDispFormat;
+	}
+
+	public NumberUnit(String aFullLabel, String aShortLabel, double aConversionFactor, String aFormatStr)
+	{
+		this(aFullLabel, aShortLabel, aConversionFactor, new DecimalFormat(aFormatStr));
+	}
+
 	public NumberUnit(String aFullLabel, String aShortLabel, double aConversionFactor)
 	{
-		this(aFullLabel, aShortLabel, aConversionFactor, (DecimalFormat)null);
+		this(aFullLabel, aShortLabel, aConversionFactor, (DecimalFormat) null);
 	}
 
-	public NumberUnit(String aFullLabel, String aShortLabel, double aConversionFactor, String aDecimalFormatStr)
+	public NumberUnit(String aFullLabel, String aShortLabel, double aConversionFactor, int aNumDecimalPlaces)
 	{
-		this(aFullLabel, aShortLabel, aConversionFactor, new DecimalFormat(aDecimalFormatStr));
-	}
-
-	public NumberUnit(String aFullLabel, String aShortLabel, double aConversionFactor, DecimalFormat aFormat)
-	{
-		nanStr = "---";
-		fullLabel = aFullLabel;
-		shortLabel = aShortLabel;
-		conversionFactor = aConversionFactor;
-		format = aFormat;
-	}
-
-	public NumberUnit(String aFullLabel, String aShortLabel, double aConversionFactor, int numDecimalPlaces)
-	{
-		String aStr;
-
-		nanStr = "---";
-		fullLabel = aFullLabel;
-		shortLabel = aShortLabel;
-		conversionFactor = aConversionFactor;
-
-		aStr = "#0";
-		if (numDecimalPlaces > 0)
-		{
-			aStr = "#0.";
-			for (int c1 = 0; c1 < numDecimalPlaces; c1++)
-				aStr += "0";
-		}
-		format = new DecimalFormat(aStr);
+		this(aFullLabel, aShortLabel, aConversionFactor, UnitUtil.formFormatWithNumDecimalPlaces(aNumDecimalPlaces));
 	}
 
 	/**
@@ -59,12 +62,12 @@ public class NumberUnit implements Unit
 	 */
 	public boolean isFloating()
 	{
-		if (format != null && format.getMaximumFractionDigits() == 0)
+		if (dispFormat != null && dispFormat.getMaximumFractionDigits() == 0)
 			return false;
 
 		return true;
 
-//System.out.println("NumFracDigits:" + format.getMaximumFractionDigits());		
+//System.out.println("NumFracDigits:" + format.getMaximumFractionDigits());
 //		return format.isParseIntegerOnly();
 	}
 
@@ -79,10 +82,10 @@ public class NumberUnit implements Unit
 	@Override
 	public Format getFormat()
 	{
-		if (format == null)
+		if (dispFormat == null)
 			return null;
 
-		return (Format)format.clone();
+		return (Format) dispFormat.clone();
 	}
 
 	@Override
@@ -92,9 +95,9 @@ public class NumberUnit implements Unit
 	}
 
 	@Override
-	public String getLabel(boolean isDetailed)
+	public String getLabel(boolean aIsDetailed)
 	{
-		if (isDetailed == true)
+		if (aIsDetailed == true)
 			return fullLabel;
 		else
 			return shortLabel;
@@ -106,27 +109,27 @@ public class NumberUnit implements Unit
 		if (aVal instanceof Number == false)
 			return nanStr;
 
-		double doubleVal = ((Number)aVal).doubleValue();
+		double doubleVal = ((Number) aVal).doubleValue();
 		if (Double.isNaN(doubleVal) == true)
 			return nanStr;
 
-		if (format == null)
+		if (dispFormat == null)
 			return "" + doubleVal * conversionFactor;
 
-		synchronized (format)
+		synchronized (dispFormat)
 		{
-			return format.format(doubleVal * conversionFactor);
+			return dispFormat.format(doubleVal * conversionFactor);
 		}
 	}
 
 	@Override
-	public String getString(Object aVal, boolean isDetailed)
+	public String getString(Object aVal, boolean aIsDetailed)
 	{
 		// Delegate
 		String retStr = getString(aVal);
 
 		// Add the label component
-		if (isDetailed == true)
+		if (aIsDetailed == true)
 			retStr += " " + fullLabel;
 		else
 			retStr += " " + shortLabel;
@@ -139,7 +142,7 @@ public class NumberUnit implements Unit
 	{
 		double aVal;
 
-		aVal = GuiUtil.readDouble(aStr, Double.NaN);
+		aVal = ParseUtil.readDouble(aStr, Double.NaN);
 		return toModel(aVal);
 	}
 

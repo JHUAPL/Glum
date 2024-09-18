@@ -1,0 +1,38 @@
+module glum
+{
+	requires java.base;
+	requires java.compiler;
+	requires transitive java.desktop;
+//	requires static java.desktop;
+	requires guava;
+	requires miglayout;
+//	requires miglayout;
+//	requires net.miginfocom;
+//	requires net.miginfocom.layout;
+
+	exports glum.gui;
+	exports glum.io;
+	exports glum.io.token;
+	exports glum.net;
+	exports glum.unit;
+	exports glum.util;
+	exports glum.reflect;
+	exports glum.registry;
+	exports glum.task;
+
+	exports glum.database;
+	exports glum.gui.action;
+	exports glum.gui.component;
+	exports glum.gui.panel;
+	exports glum.gui.panel.generic;
+	exports glum.gui.panel.itemList;
+	exports glum.gui.panel.itemList.query;
+	exports glum.gui.panel.task;
+	exports glum.zio;
+	exports glum.zio.stream;
+	exports glum.zio.util;
+
+//	uses java.awt.event.ActionListener;
+	uses java.awt.Font;
+	uses java.awt.Component;
+}

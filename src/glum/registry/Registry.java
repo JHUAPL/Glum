@@ -1,31 +1,47 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.registry;
 
 import java.util.*;
 
 /**
  * The Registry class allows for various types of entities to be linked together by a common key. Outside operators can:
- * <UL>
- * <LI>1. Add items associated with the key
- * <LI>2. Retrieve a collection of all items associated with the key
- * <LI>3. Register to receive notification of any changes associated with a key
- * <LI>4. Send notification with regard to a key
- * </UL>
+ * <ul>
+ * <li>1. Add items associated with the key
+ * <li>2. Retrieve a collection of all items associated with the key
+ * <li>3. Register to receive notification of any changes associated with a key
+ * <li>4. Send notification with regard to a key
+ * </ul>
+ *
+ * @author lopeznr1
  */
 public class Registry
 {
 	// State var
-	private Map<Object, Collection<Object>> mySetMap;
-	private Map<Object, Collection<ResourceListener>> mySetListeners;
-	private Map<Object, Object> mySingletonMap;
-	private Map<Object, Collection<ResourceListener>> mySingletonListeners;
+	private Map<Object, Collection<Object>> myGroupM;
+	private Map<Object, Collection<ResourceListener>> myGroupListenerM;
+	private Map<Object, Object> mySingletonM;
+	private Map<Object, Collection<ResourceListener>> mySingletonListenerM;
 
+	/** Standard Constructor */
 	public Registry()
 	{
-		mySetMap = new LinkedHashMap<Object, Collection<Object>>();
-		mySetListeners = new LinkedHashMap<Object, Collection<ResourceListener>>();
+		myGroupM = new LinkedHashMap<Object, Collection<Object>>();
+		myGroupListenerM = new LinkedHashMap<Object, Collection<ResourceListener>>();
 
-		mySingletonMap = new LinkedHashMap<Object, Object>();
-		mySingletonListeners = new LinkedHashMap<Object, Collection<ResourceListener>>();
+		mySingletonM = new LinkedHashMap<Object, Object>();
+		mySingletonListenerM = new LinkedHashMap<Object, Collection<ResourceListener>>();
 	}
 
 	/**
@@ -33,26 +49,26 @@ public class Registry
 	 */
 	public synchronized void dispose()
 	{
-		if (mySetMap != null)
+		if (myGroupM != null)
 		{
-			mySetMap.clear();
-			mySetMap = null;
+			myGroupM.clear();
+			myGroupM = null;
 		}
-		if (mySetListeners != null)
+		if (myGroupListenerM != null)
 		{
-			mySetListeners.clear();
-			mySetListeners = null;
+			myGroupListenerM.clear();
+			myGroupListenerM = null;
 		}
 
-		if (mySingletonMap != null)
+		if (mySingletonM != null)
 		{
-			mySingletonMap.clear();
-			mySingletonMap = null;
+			mySingletonM.clear();
+			mySingletonM = null;
 		}
-		if (mySingletonListeners != null)
+		if (mySingletonListenerM != null)
 		{
-			mySingletonListeners.clear();
-			mySingletonListeners = null;
+			mySingletonListenerM.clear();
+			mySingletonListenerM = null;
 		}
 	}
 
@@ -61,17 +77,17 @@ public class Registry
 	 */
 	public void addAllResourceItems(Object aKey, Collection<? extends Object> aList)
 	{
-		Collection<Object> aCollection;
+		Collection<Object> tmpGroupC;
 
-		synchronized(this)
+		synchronized (this)
 		{
-			aCollection = mySetMap.get(aKey);
-			if (aCollection == null)
+			tmpGroupC = myGroupM.get(aKey);
+			if (tmpGroupC == null)
 			{
-				aCollection = new LinkedHashSet<Object>();
-				mySetMap.put(aKey, aCollection);
+				tmpGroupC = new LinkedHashSet<Object>();
+				myGroupM.put(aKey, tmpGroupC);
 			}
-			aCollection.addAll(aList);
+			tmpGroupC.addAll(aList);
 		}
 
 		// Notify the listeners
@@ -83,17 +99,17 @@ public class Registry
 	 */
 	public void addResourceItem(Object aKey, Object aObject)
 	{
-		Collection<Object> aCollection;
+		Collection<Object> tmpGroupC;
 
-		synchronized(this)
+		synchronized (this)
 		{
-			aCollection = mySetMap.get(aKey);
-			if (aCollection == null)
+			tmpGroupC = myGroupM.get(aKey);
+			if (tmpGroupC == null)
 			{
-				aCollection = new LinkedHashSet<Object>();
-				mySetMap.put(aKey, aCollection);
+				tmpGroupC = new LinkedHashSet<Object>();
+				myGroupM.put(aKey, tmpGroupC);
 			}
-			aCollection.add(aObject);
+			tmpGroupC.add(aObject);
 		}
 
 		// Notify the listeners
@@ -105,17 +121,17 @@ public class Registry
 	 */
 	public void addResourceListener(Object aKey, ResourceListener aListener)
 	{
-		Collection<ResourceListener> aSet;
+		Collection<ResourceListener> tmpListenerC;
 
-		synchronized(this)
+		synchronized (this)
 		{
-			aSet = mySetListeners.get(aKey);
-			if (aSet == null)
+			tmpListenerC = myGroupListenerM.get(aKey);
+			if (tmpListenerC == null)
 			{
-				aSet = new ArrayList<ResourceListener>();
-				mySetListeners.put(aKey, aSet);
+				tmpListenerC = new ArrayList<ResourceListener>();
+				myGroupListenerM.put(aKey, tmpListenerC);
 			}
-			aSet.add(aListener);
+			tmpListenerC.add(aListener);
 		}
 	}
 
@@ -124,17 +140,17 @@ public class Registry
 	 */
 	public void addSingletonListener(Object aKey, ResourceListener aListener)
 	{
-		Collection<ResourceListener> aSet;
+		Collection<ResourceListener> tmpListenerC;
 
-		synchronized(this)
+		synchronized (this)
 		{
-			aSet = mySingletonListeners.get(aKey);
-			if (aSet == null)
+			tmpListenerC = mySingletonListenerM.get(aKey);
+			if (tmpListenerC == null)
 			{
-				aSet = new ArrayList<ResourceListener>();
-				mySingletonListeners.put(aKey, aSet);
+				tmpListenerC = new ArrayList<ResourceListener>();
+				mySingletonListenerM.put(aKey, tmpListenerC);
 			}
-			aSet.add(aListener);
+			tmpListenerC.add(aListener);
 		}
 	}
 
@@ -143,30 +159,30 @@ public class Registry
 	 */
 	public synchronized List<Object> getResourceItems(Object aKey)
 	{
-		Collection<Object> aCollection;
+		Collection<Object> tmpGroupC;
 
-		aCollection = mySetMap.get(aKey);
-		if (aCollection == null)
+		tmpGroupC = myGroupM.get(aKey);
+		if (tmpGroupC == null)
 			return new ArrayList<Object>();
 
-		return new ArrayList<Object>(aCollection);
+		return new ArrayList<Object>(tmpGroupC);
 	}
 
-	public synchronized <G1> List<G1> getResourceItems(Object aKey, Class<G1> retType)
+	public synchronized <G1> List<G1> getResourceItems(Object aKey, Class<G1> aRetType)
 	{
-		Collection<Object> aCollection;
+		Collection<Object> tmpGroupC;
 		List<G1> retList;
 
 		retList = new ArrayList<G1>();
 
-		aCollection = mySetMap.get(aKey);
-		if (aCollection == null)
+		tmpGroupC = myGroupM.get(aKey);
+		if (tmpGroupC == null)
 			return retList;
 
-		for (Object aObj : aCollection)
+		for (Object aObj : tmpGroupC)
 		{
-			if (retType.isInstance(aObj) == true)
-				retList.add(retType.cast(aObj));
+			if (aRetType.isInstance(aObj) == true)
+				retList.add(aRetType.cast(aObj));
 		}
 
 		return retList;
@@ -177,27 +193,27 @@ public class Registry
 	 */
 	public synchronized Object getSingleton(Object aKey)
 	{
-		Object aSingleton;
+		Object tmpSingleton;
 
 		// Insanity check
 		if (aKey == null)
 			return null;
 
-		aSingleton = mySingletonMap.get(aKey);
-		return aSingleton;
+		tmpSingleton = mySingletonM.get(aKey);
+		return tmpSingleton;
 	}
 
-	public synchronized <G1> G1 getSingleton(Object aKey, Class<G1> retType)
+	public synchronized <G1> G1 getSingleton(Object aKey, Class<G1> aRetType)
 	{
-		Object aSingleton;
+		Object tmpSingleton;
 
 		// Insanity check
 		if (aKey == null)
 			return null;
 
-		aSingleton = mySingletonMap.get(aKey);
-		if (retType.isInstance(aSingleton) == true)
-			return retType.cast(aSingleton);
+		tmpSingleton = mySingletonM.get(aKey);
+		if (aRetType.isInstance(tmpSingleton) == true)
+			return aRetType.cast(tmpSingleton);
 
 		return null;
 	}
@@ -207,18 +223,18 @@ public class Registry
 	 */
 	public void removeAllResourceItems(Object aKey)
 	{
-		Collection<Object> aCollection;
+		Collection<Object> tmpGroupC;
 
 		// Remove the item
-		synchronized(this)
+		synchronized (this)
 		{
 			// Get the associated collection
-			aCollection = mySetMap.get(aKey);
-			if (aCollection == null)
+			tmpGroupC = myGroupM.get(aKey);
+			if (tmpGroupC == null)
 				return;
 
 			// Remove all the items from the collection
-			aCollection.clear();
+			tmpGroupC.clear();
 		}
 
 		// Notify the listeners
@@ -230,18 +246,18 @@ public class Registry
 	 */
 	public void removeResourceItem(Object aKey, Object aObject)
 	{
-		Collection<Object> aCollection;
+		Collection<Object> tmpGroupC;
 
 		// Remove the item
-		synchronized(this)
+		synchronized (this)
 		{
 			// Get the associated collection
-			aCollection = mySetMap.get(aKey);
-			if (aCollection == null)
+			tmpGroupC = myGroupM.get(aKey);
+			if (tmpGroupC == null)
 				return;
 
 			// Remove the item from the collection
-			aCollection.remove(aObject);
+			tmpGroupC.remove(aObject);
 		}
 
 		// Notify the listeners
@@ -253,18 +269,18 @@ public class Registry
 	 */
 	public void replaceResourceItems(Object aKey, Collection<? extends Object> aList)
 	{
-		Collection<Object> aCollection;
+		Collection<Object> tmpGroupC;
 
-		synchronized(this)
+		synchronized (this)
 		{
-			aCollection = mySetMap.get(aKey);
-			if (aCollection == null)
+			tmpGroupC = myGroupM.get(aKey);
+			if (tmpGroupC == null)
 			{
-				aCollection = new LinkedHashSet<Object>();
-				mySetMap.put(aKey, aCollection);
+				tmpGroupC = new LinkedHashSet<Object>();
+				myGroupM.put(aKey, tmpGroupC);
 			}
-			aCollection.clear();
-			aCollection.addAll(aList);
+			tmpGroupC.clear();
+			tmpGroupC.addAll(aList);
 		}
 
 		// Notify the listeners
@@ -276,19 +292,19 @@ public class Registry
 	 */
 	public void removeResourceListener(Object aKey, ResourceListener aListener)
 	{
-		Collection<ResourceListener> aSet;
+		Collection<ResourceListener> tmpListenerC;
 
 		// Remove the listenr
-		synchronized(this)
+		synchronized (this)
 		{
-			if (mySetListeners == null)
+			if (myGroupListenerM == null)
 				return;
 
-			aSet = mySetListeners.get(aKey);
-			if (aSet == null)
+			tmpListenerC = myGroupListenerM.get(aKey);
+			if (tmpListenerC == null)
 				return;
 
-			aSet.remove(aListener);
+			tmpListenerC.remove(aListener);
 		}
 	}
 
@@ -297,19 +313,19 @@ public class Registry
 	 */
 	public void removeSingletonListener(Object aKey, ResourceListener aListener)
 	{
-		Collection<ResourceListener> aSet;
+		Collection<ResourceListener> tmpListenerC;
 
 		// Remove the listenr
-		synchronized(this)
+		synchronized (this)
 		{
-			if (mySingletonListeners == null)
+			if (mySingletonListenerM == null)
 				return;
 
-			aSet = mySingletonListeners.get(aKey);
-			if (aSet == null)
+			tmpListenerC = mySingletonListenerM.get(aKey);
+			if (tmpListenerC == null)
 				return;
 
-			aSet.remove(aListener);
+			tmpListenerC.remove(aListener);
 		}
 	}
 
@@ -318,14 +334,14 @@ public class Registry
 	 */
 	public void setSingleton(Object aKey, Object aObject)
 	{
-		synchronized(this)
+		synchronized (this)
 		{
 			// Remove the entry from the hashtable if null
 			if (aObject == null)
-				mySingletonMap.remove(aKey);
+				mySingletonM.remove(aKey);
 			// Set in the entry for the corresponding aKey
 			else
-				mySingletonMap.put(aKey, aObject);
+				mySingletonM.put(aKey, aObject);
 		}
 
 		// Notify the listeners
@@ -337,20 +353,20 @@ public class Registry
 	 */
 	public void notifyResourceListeners(Object aKey)
 	{
-		Collection<ResourceListener> aSet, notifySet;
+		Collection<ResourceListener> tmpListenerC;
 
 		// Get the listeners
-		synchronized(this)
+		synchronized (this)
 		{
-			aSet = mySetListeners.get(aKey);
-			if (aSet == null)
+			tmpListenerC = myGroupListenerM.get(aKey);
+			if (tmpListenerC == null)
 				return;
 
-			notifySet = new ArrayList<ResourceListener>(aSet);
+			tmpListenerC = new ArrayList<ResourceListener>(tmpListenerC);
 		}
 
 		// Send out the notifications
-		for (ResourceListener aListener : notifySet)
+		for (ResourceListener aListener : tmpListenerC)
 			aListener.resourceChanged(this, aKey);
 	}
 
@@ -359,20 +375,20 @@ public class Registry
 	 */
 	public void notifySingletonListeners(Object aKey)
 	{
-		Collection<ResourceListener> aSet, notifySet;
+		Collection<ResourceListener> tmpListenerC;
 
 		// Get the listeners
-		synchronized(this)
+		synchronized (this)
 		{
-			aSet = mySingletonListeners.get(aKey);
-			if (aSet == null)
+			tmpListenerC = mySingletonListenerM.get(aKey);
+			if (tmpListenerC == null)
 				return;
 
-			notifySet = new ArrayList<ResourceListener>(aSet);
+			tmpListenerC = new ArrayList<ResourceListener>(tmpListenerC);
 		}
 
 		// Send out the notifications
-		for (ResourceListener aListener : notifySet)
+		for (ResourceListener aListener : tmpListenerC)
 			aListener.resourceChanged(this, aKey);
 	}
 

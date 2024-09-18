@@ -1,26 +1,46 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.gui.panel.itemList;
 
 import java.util.*;
 
+import glum.item.*;
+
+/**
+ * Base implementation of the interface {@link ItemProcessor}.
+ * 
+ * @author lopeznr1
+ */
 public abstract class BasicItemProcessor<G1> implements ItemProcessor<G1>
 {
-	private Collection<ItemChangeListener> myListeners;
+	private final List<ItemEventListener> listenerL;
 
 	public BasicItemProcessor()
 	{
-		myListeners = new ArrayList<ItemChangeListener>();
+		listenerL = new ArrayList<>();
 	}
 
 	@Override
-	public synchronized void addItemChangeListener(ItemChangeListener aListener)
+	public synchronized void addListener(ItemEventListener aListener)
 	{
-		myListeners.add(aListener);
+		listenerL.add(aListener);
 	}
 
 	@Override
-	public synchronized void removeItemChangeListener(ItemChangeListener aListener)
+	public synchronized void delListener(ItemEventListener aListener)
 	{
-		myListeners.remove(aListener);
+		listenerL.remove(aListener);
 	}
 
 	/**
@@ -28,17 +48,16 @@ public abstract class BasicItemProcessor<G1> implements ItemProcessor<G1>
 	 */
 	protected void notifyListeners()
 	{
-		Collection<ItemChangeListener> notifySet;
-
 		// Get the listeners
-		synchronized(this)
+		Collection<ItemEventListener> tmpListenerL;
+		synchronized (this)
 		{
-			notifySet = new ArrayList<ItemChangeListener>(myListeners);
+			tmpListenerL = new ArrayList<>(listenerL);
 		}
 
 		// Send out the notifications
-		for (ItemChangeListener aListener : notifySet)
-			aListener.itemChanged();
+		for (ItemEventListener aListener : tmpListenerL)
+			aListener.handleItemEvent(this, ItemEventType.ItemsChanged);
 	}
 
 }

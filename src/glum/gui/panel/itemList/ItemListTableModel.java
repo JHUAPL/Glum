@@ -1,78 +1,107 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.gui.panel.itemList;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+
+import javax.swing.JTable;
 import javax.swing.table.AbstractTableModel;
 
-public class ItemListTableModel<G1> extends AbstractTableModel
+/**
+ * TableModel that provides access to a collection of items handled by the provided {@link ItemHandler}.
+ *
+ * @param <G1>
+ * @param <G2>
+ *
+ * @author lopeznr1
+ */
+public class ItemListTableModel<G1, G2 extends Enum<?>> extends AbstractTableModel
 {
-	private ItemHandler<G1> myHandler;
-	private ArrayList<G1> myVector;
+	// Ref vars
+	private final ItemHandler<G1, G2> refItemHandler;
+
+	// State vars
+	private final TableColumnHandler<G2> workTableColumnHandler;
+	private final ArrayList<G1> myItemL;
 
 	/**
-	 * Constructor
+	 * Standard Constructor
+	 *
+	 * @param aItemHandler
+	 * @param aTableColumnHandler
 	 */
-	public ItemListTableModel(ItemHandler<G1> aHandler)
+	public ItemListTableModel(ItemHandler<G1, G2> aItemHandler, TableColumnHandler<G2> aTableColumnHandler)
 	{
-		myHandler = aHandler;
+		refItemHandler = aItemHandler;
+		workTableColumnHandler = aTableColumnHandler;
 
-		myVector = new ArrayList<G1>();
+		myItemL = new ArrayList<>();
 	}
 
 	@Override
 	public int getColumnCount()
 	{
-		if (myHandler == null)
-			return 0;
-
-		return myHandler.getColumnCount();
+		return workTableColumnHandler.getColumnCount();
 	}
 
 	@Override
 	public int getRowCount()
 	{
-		return myVector.size();
+		return myItemL.size();
 	}
 
 	@Override
-	public String getColumnName(int col)
+	public String getColumnName(int aCol)
 	{
-		if (myHandler == null)
+		return workTableColumnHandler.getColumnLabel(aCol);
+	}
+
+	@Override
+	public Object getValueAt(int aRow, int aCol)
+	{
+		// Locate the lookup corresponding to the specified column
+		var tmpEnum = workTableColumnHandler.getEnum(aCol);
+		if (tmpEnum == null)
 			return null;
 
-		return myHandler.getColumnLabel(col);
+		// Retrieve the appropriate data field of the appropriate item
+		return refItemHandler.getValue(myItemL.get(aRow), tmpEnum);
 	}
 
 	@Override
-	public Object getValueAt(int row, int col)
+	public Class<?> getColumnClass(int aCol)
 	{
-		if (myHandler == null)
-			return null;
-
-		return myHandler.getColumnValue(myVector.get(row), col);
+		return workTableColumnHandler.getColumnClass(aCol);
 	}
 
 	@Override
-	public Class<?> getColumnClass(int col)
+	public boolean isCellEditable(int aRow, int aCol)
 	{
-		return myHandler.getColumnClass(col);
+		return workTableColumnHandler.isColumnEditable(aCol);
 	}
 
 	@Override
-	public boolean isCellEditable(int row, int col)
+	public void setValueAt(Object aValue, int aRow, int aCol)
 	{
-		if (myHandler == null)
-			return false;
-
-		return myHandler.isCellEditable(col);
-	}
-
-	@Override
-	public void setValueAt(Object value, int row, int col)
-	{
-		if (myHandler == null)
+		// Locate the lookup corresponding to the specified column
+		var tmpEnum = workTableColumnHandler.getEnum(aCol);
+		if (tmpEnum == null)
 			return;
 
-		myHandler.setColumnValue(myVector.get(row), col, value);
+		// Update the appropriate data field of the appropriate item
+		refItemHandler.setValue(myItemL.get(aRow), tmpEnum, aValue);
 	}
 
 	/**
@@ -80,15 +109,13 @@ public class ItemListTableModel<G1> extends AbstractTableModel
 	 */
 	public void clear()
 	{
-		int endIndex;
-
-		if (myVector.isEmpty() == true)
+		if (myItemL.isEmpty() == true)
 			return;
 
-		endIndex = myVector.size() - 1;
-		myVector.clear();
+		int endIdx = myItemL.size() - 1;
+		myItemL.clear();
 
-		fireTableRowsDeleted(0, endIndex);
+		fireTableRowsDeleted(0, endIdx);
 	}
 
 	/**
@@ -96,18 +123,16 @@ public class ItemListTableModel<G1> extends AbstractTableModel
 	 */
 	public int getRowIndex(G1 aItem)
 	{
-		int aIndex;
-
 		if (aItem == null)
 			return -1;
 
-		aIndex = 0;
-		for (G1 aObj : myVector)
+		int tmpIdx = 0;
+		for (G1 aObj : myItemL)
 		{
 			if (aObj.equals(aItem) == true)
-				return aIndex;
+				return tmpIdx;
 
-			aIndex++;
+			tmpIdx++;
 		}
 
 		return -1;
@@ -116,33 +141,40 @@ public class ItemListTableModel<G1> extends AbstractTableModel
 	/**
 	 * Returns the item associated with the row
 	 */
-	public G1 getRowItem(int row)
+	public G1 getRowItem(int aRow)
 	{
-		if (row < 0 || row >= myVector.size())
+		if (aRow < 0 || aRow >= myItemL.size())
 			return null;
 
-		return myVector.get(row);
+		return myItemL.get(aRow);
 	}
 
 	/**
 	 * Adds the collection to our TableModel
 	 */
-	public void addItems(Collection<? extends G1> aCollection)
+	public void addItems(Collection<? extends G1> aItemC)
 	{
-		int startIndex, endIndex;
-
-		if (aCollection == null)
+		if (aItemC == null)
 			return;
 
-		if (aCollection.isEmpty() == true)
+		if (aItemC.isEmpty() == true)
 			return;
 
-		startIndex = myVector.size();
-		endIndex = startIndex + aCollection.size();
+		var startIndex = myItemL.size();
+		var endIndex = startIndex + aItemC.size();
 
-		myVector.addAll(aCollection);
+		myItemL.addAll(aItemC);
 
 		fireTableRowsInserted(startIndex, endIndex);
+	}
+
+	/**
+	 * Notifies this {@link TableColumnHandler} of the associated {@link JTable}.
+	 */
+	public void initialize(JTable aTable)
+	{
+		// Delegate
+		workTableColumnHandler.initialize(aTable);
 	}
 
 }

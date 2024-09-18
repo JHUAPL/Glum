@@ -1,4 +1,25 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.gui.panel.generic;
+
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.IOException;
+
+import javax.swing.*;
 
 import glum.gui.FocusUtil;
 import glum.gui.GuiUtil;
@@ -8,44 +29,34 @@ import glum.gui.panel.GlassPanel;
 import glum.io.Loader;
 import glum.io.LoaderInfo;
 import glum.unit.ByteUnit;
-import glum.unit.Unit;
 import glum.zio.ZinStream;
 import glum.zio.ZoutStream;
-
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.File;
-import java.io.IOException;
-
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
-import javax.swing.border.BevelBorder;
-
 import net.miginfocom.swing.MigLayout;
 
+/**
+ * {@link GlassPanel} used to prompt the user for a location on the disk.
+ * <p>
+ * The title and (prompt) message can be customized.
+ *
+ * @author lopeznr1
+ */
 public class LocationPanel extends GlassPanel implements ActionListener, GenericCodes
 {
 	// Constants
-	public static final Color warnColor = new Color(128, 0, 0);
+	public static final Color ColorWarn = new Color(128, 0, 0);
 
 	// GUI vars
-	protected JLabel titleL, locationL, infoL, warnL;
-	protected JButton cancelB, acceptB, fileB;
-	protected JTextArea instrTA;
-	protected GTextField locationTF;
+	private JLabel titleL, locationL, infoL, warnL;
+	private JButton cancelB, acceptB, fileB;
+	private JTextArea instrTA;
+	private GTextField locationTF;
 
 	// State vars
-	protected LoaderInfo loaderInfo;
-	protected long minFreeSpace;
-	protected boolean isAccepted;
+	private LoaderInfo loaderInfo;
+	private long minFreeSpace;
+	private boolean isAccepted;
 
+	/** Standard Constructor */
 	public LocationPanel(Component aParent)
 	{
 		super(aParent);
@@ -65,14 +76,38 @@ public class LocationPanel extends GlassPanel implements ActionListener, Generic
 	}
 
 	/**
-	 * Returns the input of the user.
+	 * Returns the file as specified in the location gui.
+	 * <p>
+	 * Returns null if the input is empty.
 	 */
-	public File getInput()
+	public File getPath()
 	{
-		if (isAccepted == false)
+		var inputStr = locationTF.getText();
+		if (inputStr.isEmpty() == true)
 			return null;
 
-		return new File(locationTF.getText());
+		return new File(inputStr);
+	}
+
+	/**
+	 * Returns true if this panel was accepted.
+	 */
+	public boolean isAccepted()
+	{
+		return isAccepted;
+	}
+
+	/**
+	 * Sets the location gui to reflect the specified file.
+	 */
+	public void setPath(File aFile)
+	{
+		var inputStr = "";
+		if (aFile != null)
+			inputStr = aFile.getAbsolutePath();
+
+		locationTF.setText(inputStr);
+		updateGui();
 	}
 
 	/**
@@ -102,47 +137,24 @@ public class LocationPanel extends GlassPanel implements ActionListener, Generic
 	@Override
 	public void actionPerformed(ActionEvent aEvent)
 	{
-		Object source;
-
-		source = aEvent.getSource();
-		if (source == cancelB)
-		{
-			isAccepted = false;
-			setVisible(false);
-			notifyListeners(this, ID_CANCEL, "Cancel");
-		}
-		else if (source == acceptB)
-		{
-			isAccepted = true;
-			setVisible(false);
-			notifyListeners(this, ID_ACCEPT, "Accept");
-		}
-		else if (source == locationTF)
-		{
-			updateGui();
-		}
+		var source = aEvent.getSource();
+		if (source == acceptB)
+			doActionAccept();
+		else if (source == cancelB)
+			doActionCancel();
 		else if (source == fileB)
-		{
-			File aFile;
+			doActionDestPath();
 
-			// Retrieve the path to load
-			aFile = Loader.queryUserForPath(loaderInfo, getParent(), "Select target folder", true);
-			if (aFile != null)
-				locationTF.setValue(aFile.getAbsolutePath());
-
-			updateGui();
-		}
-
+		updateGui();
 	}
 
 	@Override
 	public void setVisible(boolean aBool)
 	{
-		// Reset the GUI
+		// Reset relevant state vars
 		if (aBool == true)
 		{
 			isAccepted = false;
-			locationTF.setText("");
 			updateGui();
 		}
 
@@ -174,12 +186,8 @@ public class LocationPanel extends GlassPanel implements ActionListener, Generic
 	 */
 	protected void buildGuiArea()
 	{
-		JScrollPane tmpPane;
-		Font aFont;
-		String aStr;
-
 		setLayout(new MigLayout("", "[][][grow]", "[][grow,50::][]"));
-		aFont = (new JTextField()).getFont();
+		var tmpFont = (new JTextField()).getFont();
 
 		// Title Area
 		titleL = new JLabel("Title", JLabel.CENTER);
@@ -187,7 +195,7 @@ public class LocationPanel extends GlassPanel implements ActionListener, Generic
 
 		// Instruction area
 		instrTA = GuiUtil.createUneditableTextArea(2, 0);
-		tmpPane = new JScrollPane(instrTA);
+		var tmpPane = new JScrollPane(instrTA);
 		tmpPane.setBorder(null);
 		add(tmpPane, "growx,growy,span,wrap");
 
@@ -200,43 +208,74 @@ public class LocationPanel extends GlassPanel implements ActionListener, Generic
 		add(locationTF, "growx,span,wrap");
 
 		// Info area
-		aStr = "Please specify the disk location where the catalog should be constructed..";
-		infoL = GuiUtil.createJLabel(aStr, aFont);
+		var tmpStr = "Please specify the disk location where the catalog should be constructed..";
+		infoL = GuiUtil.createJLabel(tmpStr, tmpFont);
 		add(infoL, "growx,span,wrap");
 
 		// Warn area
-		aStr = "";
-		warnL = GuiUtil.createJLabel(aStr, aFont);
-		warnL.setForeground(warnColor);
+		tmpStr = "";
+		warnL = GuiUtil.createJLabel(tmpStr, tmpFont);
+		warnL.setForeground(ColorWarn);
 		add(warnL, "growx,h 20!,span,wrap");
 
 		// Control area
-		cancelB = GuiUtil.createJButton("Cancel", this, aFont);
-		acceptB = GuiUtil.createJButton("Accept", this, aFont);
-		add(cancelB, "align right,span,split 2");
+		cancelB = GuiUtil.createJButton("Cancel", this);
+		acceptB = GuiUtil.createJButton("Accept", this);
+		add(cancelB, "ax right,span,split");
 		add(acceptB, "");
-
-		setBorder(new BevelBorder(BevelBorder.RAISED));
 	}
 
 	/**
-	 * Utility method to update the various GUI components (most likely infoL, acceptB) based on the current inputTF.
+	 * Helper method to process the "accept" action.
 	 */
-	protected void updateGui()
+	private void doActionAccept()
 	{
-		File destPath, rootPath;
-		String infoStr, warnStr;
-		Unit diskUnit;
-		boolean isValid;
-		long freeBytes;
+		isAccepted = true;
+		setVisible(false);
+		notifyListeners(this, ID_ACCEPT, "Cancel");
+	}
 
+	/**
+	 * Helper method to process the "cancel" action.
+	 */
+	private void doActionCancel()
+	{
+		isAccepted = false;
+		setVisible(false);
+		notifyListeners(this, ID_CANCEL, "Cancel");
+	}
+
+	/**
+	 * Helper method to process the "specify destination path" action.
+	 */
+	private void doActionDestPath()
+	{
+		// Retrieve the path to load
+		File tmpFile = Loader.queryUserForPath(loaderInfo, getParent(), "Select target folder", true);
+		if (tmpFile != null)
+			locationTF.setValue(tmpFile.getAbsolutePath());
+	}
+
+	/**
+	 * Helper method that keeps various UI components synchronized.
+	 */
+	private void updateGui()
+	{
 		// Retrieve the folder
-		destPath = null;
-		if (locationTF.getText().isEmpty() == false)
-			destPath = new File(locationTF.getText());
+		File destPath = null;
+		String locationStr = locationTF.getText();
+		if (locationStr.isEmpty() == false)
+		{
+			if (locationStr.equals("~") == true)
+				locationStr = System.getProperty("user.home");
+			if (locationStr.startsWith("~/") == true)
+				locationStr = new File(System.getProperty("user.home"), locationStr.substring(2)).getAbsolutePath();
+
+			destPath = new File(locationStr);
+		}
 
 		// Retrieve the root folder
-		rootPath = destPath;
+		var rootPath = destPath;
 		while (rootPath != null)
 		{
 			if (rootPath.isDirectory() == true)
@@ -246,7 +285,8 @@ public class LocationPanel extends GlassPanel implements ActionListener, Generic
 		}
 
 		// Test the validity of the location
-		isValid = false;
+		String infoStr, warnStr;
+		var isValid = false;
 		if (rootPath == null)
 		{
 			infoStr = "Free space: ---";
@@ -254,19 +294,23 @@ public class LocationPanel extends GlassPanel implements ActionListener, Generic
 		}
 		else
 		{
-			diskUnit = new ByteUnit(2);
-			freeBytes = rootPath.getFreeSpace();
-			infoStr = "Free space: " + diskUnit.getString(freeBytes);
+			var diskBU = new ByteUnit(2);
+			var freeBytes = rootPath.getFreeSpace();
+			infoStr = "Free space: " + diskBU.getString(freeBytes);
 			if (minFreeSpace > 0)
-				infoStr += " Required space: " + diskUnit.getString(minFreeSpace);
+				infoStr += " Required space: " + diskBU.getString(minFreeSpace);
 
 			warnStr = "";
 			if (rootPath.canWrite() == false)
 				warnStr = "No write permission at location.";
 			else if (freeBytes < minFreeSpace && minFreeSpace > 0)
-				warnStr = "Not enough free space on disk. Minimun required: " + diskUnit.getString(minFreeSpace);
+				warnStr = "Not enough free space on disk. Minimun required: " + diskBU.getString(minFreeSpace);
 			else
 				isValid = true;
+
+			// Update the loaderInfo to reflect the user input
+			if (destPath != null)
+				loaderInfo.setPath(destPath);
 		}
 
 		// Update the components

@@ -1,48 +1,56 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.gui.panel;
 
-import glum.net.Credential;
-import glum.net.NetUtil;
-import glum.net.Result;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+import javax.swing.*;
+
 import glum.gui.FocusUtil;
 import glum.gui.GuiUtil;
 import glum.gui.action.ClickAction;
 import glum.gui.component.GPasswordField;
 import glum.gui.component.GTextField;
-import glum.gui.panel.GlassPanel;
-
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.EventQueue;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JPasswordField;
-import javax.swing.JTextField;
-import javax.swing.border.BevelBorder;
-
+import glum.net.*;
 import net.miginfocom.swing.MigLayout;
 
+/**
+ * Panel that provides functionality that allow the user to enter credentials.
+ *
+ * @author lopeznr1
+ */
 public class CredentialPanel extends GlassPanel implements ActionListener
 {
 	// Constants
 	private static final Color warnColor = new Color(128, 0, 0);
 
 	// GUI vars
-	protected JLabel titleL;
-	protected JButton ignoreB, acceptB;
-	protected JPasswordField passTF;
-	protected GTextField userTF;
-	protected JTextField sourceTF, warnTA;
+	private JLabel titleL;
+	private JButton ignoreB, acceptB;
+	private JPasswordField passTF;
+	private GTextField userTF;
+	private JTextField sourceTF, warnTA;
 
 	// State vars
-	protected Credential myCredential;
-	protected Result eResult;
-	protected Boolean isReset;
+	private Credential myCredential;
+	private Result eResult;
+	private Boolean isReset;
 
 	/**
-	 * Constructor
+	 * Standard Constructor
 	 */
 	public CredentialPanel(Component aParent)
 	{
@@ -85,14 +93,7 @@ public class CredentialPanel extends GlassPanel implements ActionListener
 
 		// Reset the dialog
 		isReset = true;
-		EventQueue.invokeLater(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				updateGui();
-			}
-		});
+		EventQueue.invokeLater(() -> updateGui());
 	}
 
 	public void setTitle(String aTitle)
@@ -101,12 +102,9 @@ public class CredentialPanel extends GlassPanel implements ActionListener
 	}
 
 	@Override
-	public void actionPerformed(ActionEvent e)
+	public void actionPerformed(ActionEvent aEvent)
 	{
-		Object source;
-
-		source = e.getSource();
-
+		var source = aEvent.getSource();
 		if (source == ignoreB)
 		{
 			// Hide the dialog
@@ -126,8 +124,7 @@ public class CredentialPanel extends GlassPanel implements ActionListener
 			final Credential aCredential = new Credential(userTF.getText(), passTF.getPassword());
 			final String uriRoot = sourceTF.getText();
 
-			new Thread()
-			{
+			new Thread() {
 				@Override
 				public void run()
 				{
@@ -147,8 +144,7 @@ public class CredentialPanel extends GlassPanel implements ActionListener
 					aResult = NetUtil.checkCredentials(uriRoot, aCredential);
 
 					// Update the Gui
-					EventQueue.invokeLater(new Runnable()
-					{
+					EventQueue.invokeLater(new Runnable() {
 						@Override
 						public void run()
 						{
@@ -189,10 +185,6 @@ public class CredentialPanel extends GlassPanel implements ActionListener
 	 */
 	private void buildGuiArea()
 	{
-		Dimension aDimension;
-		JLabel tmpL;
-		String aStr;
-
 		// Form the grid bag constraints
 		setLayout(new MigLayout("", "[right][grow][][]"));
 
@@ -201,7 +193,7 @@ public class CredentialPanel extends GlassPanel implements ActionListener
 		add(titleL, "growx,span 4,wrap");
 
 		// Source area
-		tmpL = new JLabel("Source:");
+		JLabel tmpL = new JLabel("Source:");
 		add(tmpL);
 
 		sourceTF = GuiUtil.createUneditableTextField("http://www.google.edu");
@@ -220,19 +212,17 @@ public class CredentialPanel extends GlassPanel implements ActionListener
 		add(passTF, "growx,span 3,wrap");
 
 		// Warn area
-		aStr = "Please enter the credentials for accessing the data.";
-		warnTA = GuiUtil.createUneditableTextField(aStr);
+		String tmpStr = "Please enter the credentials for accessing the data.";
+		warnTA = GuiUtil.createUneditableTextField(tmpStr);
 		warnTA.setForeground(warnColor);
 		add(warnTA, "growx,span 4,wrap");
 
 		// Action area
-		aDimension = GuiUtil.computePreferredJButtonSize("Ignore", "Accept");
-		ignoreB = GuiUtil.createJButton("Ignore", this, aDimension);
-		acceptB = GuiUtil.createJButton("Accept", this, aDimension);
-		add(ignoreB, "skip 2,span 1");
-		add(acceptB, "span 1");
-
-		setBorder(new BevelBorder(BevelBorder.RAISED));
+		Dimension tmpDim = GuiUtil.computePreferredJButtonSize("Ignore", "Accept");
+		ignoreB = GuiUtil.createJButton("Ignore", this, tmpDim);
+		acceptB = GuiUtil.createJButton("Accept", this, tmpDim);
+		add(ignoreB, "skip 2");
+		add(acceptB, "");
 	}
 
 	/**
@@ -241,7 +231,6 @@ public class CredentialPanel extends GlassPanel implements ActionListener
 	private void updateGui()
 	{
 		boolean isEnabled;
-
 		if (isReset == null)
 		{
 			warnTA.setText("Checking the credentials...");
@@ -262,20 +251,20 @@ public class CredentialPanel extends GlassPanel implements ActionListener
 				switch (eResult)
 				{
 					case BadCredentials:
-					warnTA.setText("Credentials are invalid.");
-					break;
+						warnTA.setText("Credentials are invalid.");
+						break;
 
 					case ConnectFailure:
-					warnTA.setText("Failed to connect to resource.");
-					break;
+						warnTA.setText("Failed to connect to resource.");
+						break;
 
 					case UnreachableHost:
-					warnTA.setText("Unreachable host.");
-					break;
+						warnTA.setText("Unreachable host.");
+						break;
 
 					default:
-					warnTA.setText("Unreconzied error. Error: " + eResult);
-					break;
+						warnTA.setText("Unreconzied error. Error: " + eResult);
+						break;
 				}
 			}
 		}

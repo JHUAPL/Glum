@@ -1,7 +1,25 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.unit;
 
-import java.text.*;
+import java.text.Format;
 
+/**
+ * Implementation of {@link Unit} for displaying values shifted by a constant value.
+ *
+ * @author lopeznr1
+ */
 public class ShiftedUnit implements Unit
 {
 	// State vars
@@ -11,9 +29,7 @@ public class ShiftedUnit implements Unit
 	private String shortLabel;
 	private double deltaValue;
 
-	/**
-	* Constructor
-	*/
+	/** Standard Constructor */
 	public ShiftedUnit(String aFullLabel, String aShortLabel, double aDeltaValue, Format aFormat)
 	{
 		nanStr = "---";
@@ -22,23 +38,9 @@ public class ShiftedUnit implements Unit
 		deltaValue = aDeltaValue;
 		format = aFormat;
 	}
-	public ShiftedUnit(String aFullLabel, String aShortLabel, double aDeltaValue, int numDecimalPlaces)
+	public ShiftedUnit(String aFullLabel, String aShortLabel, double aDeltaValue, int aNumDecimalPlaces)
 	{
-		String aStr;
-
-		aStr = "#0";
-		if (numDecimalPlaces > 0)
-		{
-			aStr = "#0.";
-			for (int c1 = 0; c1 < numDecimalPlaces; c1++)
-				aStr += "0";
-		}
-
-		nanStr = "---";
-		fullLabel = aFullLabel;
-		shortLabel = aShortLabel;
-		deltaValue = aDeltaValue;
-		format = new DecimalFormat(aStr);
+		this(aFullLabel, aShortLabel, aDeltaValue, UnitUtil.formFormatWithNumDecimalPlaces(aNumDecimalPlaces));
 	}
 
 	@Override
@@ -57,9 +59,9 @@ public class ShiftedUnit implements Unit
 	}
 
 	@Override
-	public String getLabel(boolean isDetailed)
+	public String getLabel(boolean aIsDetailed)
 	{
-		if (isDetailed == true)
+		if (aIsDetailed == true)
 			return fullLabel;
 		else
 			return shortLabel;
@@ -88,7 +90,7 @@ public class ShiftedUnit implements Unit
 	}
 
 	@Override
-	public String getString(Object aObj, boolean isDetailed)
+	public String getString(Object aObj, boolean aIsDetailed)
 	{
 		double aVal;
 
@@ -102,7 +104,7 @@ public class ShiftedUnit implements Unit
 
 		if (format == null)
 		{
-			if (isDetailed == true)
+			if (aIsDetailed == true)
 				return "" + (aVal + deltaValue) + " " + fullLabel;
 			else
 				return "" + (aVal + deltaValue) + " " + shortLabel;
@@ -110,7 +112,7 @@ public class ShiftedUnit implements Unit
 
 		synchronized (format)
 		{
-			if (isDetailed == true)
+			if (aIsDetailed == true)
 				return format.format(Double.valueOf(aVal + deltaValue)) + " " + fullLabel;
 			else
 				return format.format(Double.valueOf(aVal + deltaValue)) + " " + shortLabel;

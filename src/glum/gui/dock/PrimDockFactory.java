@@ -1,16 +1,25 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.gui.dock;
 
-import glum.reflect.ReflectUtil;
-import glum.registry.Registry;
-
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.Constructor;
 import java.util.Map;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+
 import bibliothek.gui.Dockable;
 import bibliothek.gui.dock.DockFactory;
 import bibliothek.gui.dock.dockable.DefaultDockablePerspective;
@@ -18,47 +27,52 @@ import bibliothek.gui.dock.layout.LocationEstimationMap;
 import bibliothek.gui.dock.perspective.PerspectiveDockable;
 import bibliothek.gui.dock.station.support.PlaceholderStrategy;
 import bibliothek.util.xml.XElement;
+import glum.reflect.ReflectUtil;
+import glum.registry.Registry;
 
 /**
  * Generic DockableFactory for creating PrimDocks.
- * <P>
+ * <p>
  * Note that before this factory is used all PrimDockable class types must first be associated with a spawnName. This is
  * used during serialization configuration associated with PrimDock. See method {@link PrimDockFactory#addSpawnMapping}
+ *
+ * @author lopeznr1
  */
 public class PrimDockFactory implements DockFactory<PrimDock, DefaultDockablePerspective, PrimConfig>
 {
 	// Constants
 	public static final String ID = "PrimDockFactory";
-	public static final String SpawnNameKey = "factory.spawnName"; 		
-	
+	public static final String SpawnNameKey = "factory.spawnName";
+
 	// State var
-	protected Registry refRegistry;
-	protected BiMap<String, Class<? extends PrimDock>> spawnMap;
-	
+	private Registry refRegistry;
+	private BiMap<String, Class<? extends PrimDock>> spawnM;
+
+	/** Standard Constructor */
 	public PrimDockFactory(Registry aRegistry)
 	{
 		refRegistry = aRegistry;
-		spawnMap = HashBiMap.create();
+		spawnM = HashBiMap.create();
 	}
-	
+
 	/**
 	 * Add a mapping for a PrimDockable to a the associated spawnName. It is mandatory
 	 * that this mapping is always the same regardless of application executions, as
-	 * this value will be serialized to the disk. 
+	 * this value will be serialized to the disk.
 	 */
-	public void addSpawnMapping(String spawnName, Class<? extends PrimDock> spawnClass)
+	public void addSpawnMapping(String aSpawnName, Class<? extends PrimDock> aSpawnClass)
 	{
 		// Ensure the spawnName is not already reserved
-		if (spawnMap.containsKey(spawnName) == true)
-			throw new RuntimeException("Previous mapping stored for spawnName:" + spawnName);
-		
+		if (spawnM.containsKey(aSpawnName) == true)
+			throw new RuntimeException("Previous mapping stored for spawnName:" + aSpawnName);
+
 		// Ensure the spawnClass is not already stored
-		if (spawnMap.inverse().containsKey(spawnClass) == true)
-			throw new RuntimeException("Previous mapping stored for spawnClass:" + spawnClass);
-		
-		spawnMap.put(spawnName, spawnClass);
+		if (spawnM.inverse().containsKey(aSpawnClass) == true)
+			throw new RuntimeException("Previous mapping stored for spawnClass:" + aSpawnClass);
+
+		spawnM.put(aSpawnName, aSpawnClass);
 	}
-	
+
 
 	@Override
 	public String getID()
@@ -71,18 +85,18 @@ public class PrimDockFactory implements DockFactory<PrimDock, DefaultDockablePer
 	{
 		PrimConfig rConfig;
 		String spawnName;
-		
+
 		rConfig = aDockable.getConfiguration();
-		
+
 		// Store the associated spawnName used to instantiate the Dockable
-		spawnName = spawnMap.inverse().get(aDockable.getClass());
+		spawnName = spawnM.inverse().get(aDockable.getClass());
 		if (spawnName == null)
 			throw new RuntimeException("Factory is not configured properly. Failed to locate associated spawnName for class:" + aDockable.getClass());
-		
+
 		// Ensure that the SpawnNameKey is not already reserved.
 		; // TODO
-		
-		rConfig.setString(SpawnNameKey, spawnName);		
+
+		rConfig.setString(SpawnNameKey, spawnName);
 		return rConfig;
 	}
 
@@ -120,8 +134,8 @@ public class PrimDockFactory implements DockFactory<PrimDock, DefaultDockablePer
 	@Override
 	public PrimConfig read(DataInputStream aStream, PlaceholderStrategy placeholders) throws IOException
 	{
-		PrimConfig rLayout;			
-	
+		PrimConfig rLayout;
+
 		rLayout = new PrimConfig();
 		rLayout.readBin(aStream);
 		return rLayout;
@@ -143,7 +157,7 @@ public class PrimDockFactory implements DockFactory<PrimDock, DefaultDockablePer
 	public PrimDock layout(PrimConfig layout, Map<Integer, Dockable> children, PlaceholderStrategy placeholders)
 	{
 		PrimDock aDockable;
-		
+
 		aDockable = layout(layout, placeholders);
 		return aDockable;
 	}
@@ -157,13 +171,13 @@ public class PrimDockFactory implements DockFactory<PrimDock, DefaultDockablePer
 		Class<?> parmTypes[] = {Registry.class};
 		Object parmValues[] = {refRegistry};
 		String spawnName;
-		
+
 		spawnName = aLayout.getString(SpawnNameKey, null);
-		
-		spawnClass = spawnMap.get(spawnName);
+
+		spawnClass = spawnM.get(spawnName);
 		if (spawnClass == null)
 			throw new RuntimeException("Factory is not configured properly. Failed to locate associated class for spawn name:" + spawnName);
-		
+
 		try
 		{
 			spawnConstructor = ReflectUtil.getConstructorSafe(spawnClass, parmTypes);
@@ -176,7 +190,7 @@ public class PrimDockFactory implements DockFactory<PrimDock, DefaultDockablePer
 		{
 			throw new RuntimeException("Failed to instantite class.", aExp);
 		}
-		
+
 		rDockable.setConfiguration(aLayout);
 		return rDockable;
 	}
@@ -189,7 +203,8 @@ public class PrimDockFactory implements DockFactory<PrimDock, DefaultDockablePer
 	}
 
 	@Override
-	public void layoutPerspective(DefaultDockablePerspective perspective, PrimConfig layout, Map<Integer, PerspectiveDockable> children)
+	public void layoutPerspective(DefaultDockablePerspective perspective, PrimConfig layout,
+			Map<Integer, PerspectiveDockable> children)
 	{
 		; // Nothing to do
 	}

@@ -5,9 +5,9 @@ import java.lang.reflect.Method;
 
 /**
  * Class to provide easy access to function and allow them to be manipulated as objects.
- * <P>
- * Source: http://stackoverflow.com/questions/1073358/function-pointers-in-java<BR>
- * Source: http://tutorials.jenkov.com/java-reflection/private-fields-and-methods.html<BR>
+ * <p>
+ * Source: http://stackoverflow.com/questions/1073358/function-pointers-in-java</br>
+ * Source: http://tutorials.jenkov.com/java-reflection/private-fields-and-methods.html</br>
  * Source: http://java.sun.com/developer/technicalArticles/ALT/Reflection/
  */
 public class Function

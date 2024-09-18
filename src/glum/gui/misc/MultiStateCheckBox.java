@@ -1,9 +1,23 @@
+// Copyright (C) 2024 The Johns Hopkins University Applied Physics Laboratory LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package glum.gui.misc;
 
 import java.awt.event.*;
-import java.util.*;
+import java.util.HashMap;
+
 import javax.swing.*;
-import javax.swing.plaf.*;
+import javax.swing.plaf.ActionMapUIResource;
 
 public class MultiStateCheckBox extends JCheckBox implements MouseListener
 {
@@ -12,7 +26,7 @@ public class MultiStateCheckBox extends JCheckBox implements MouseListener
 	protected HashMap<Object, MultiState> nextStateMap;
 
 	/**
-	 * Constructor
+	 * Standard Constructor
 	 */
 	public MultiStateCheckBox(String text, boolean is3StateCycle)
 	{
@@ -76,10 +90,8 @@ public class MultiStateCheckBox extends JCheckBox implements MouseListener
 	@Override
 	public void doClick()
 	{
-		MouseEvent aEvent;
-
-		aEvent = new MouseEvent(this, MouseEvent.MOUSE_PRESSED, 0, 0, 0, 0, 0, false);
-		handleMouseEvent(aEvent);
+		var tmpEvent = new MouseEvent(this, MouseEvent.MOUSE_PRESSED, 0, 0, 0, 0, 0, false);
+		handleMouseEvent(tmpEvent);
 		model.advanceToNextState();
 	}
 
@@ -138,25 +150,23 @@ public class MultiStateCheckBox extends JCheckBox implements MouseListener
 	 */
 	protected void handleMouseEvent(MouseEvent e)
 	{
-		int aID;
-
-		aID = e.getID();
-		if (aID == MouseEvent.MOUSE_ENTERED)
+		var tmpID = e.getID();
+		if (tmpID == MouseEvent.MOUSE_ENTERED)
 		{
 			model.setArmed(true);
 		}
-		else if (aID == MouseEvent.MOUSE_EXITED)
+		else if (tmpID == MouseEvent.MOUSE_EXITED)
 		{
 			model.setArmed(false);
 		}
-		else if (aID == MouseEvent.MOUSE_RELEASED)
+		else if (tmpID == MouseEvent.MOUSE_RELEASED)
 		{
 			if (model.isArmed() == true)
 				model.advanceToNextState();
 
 			model.setPressed(false);
 		}
-		else if (aID == MouseEvent.MOUSE_PRESSED)
+		else if (tmpID == MouseEvent.MOUSE_PRESSED)
 		{
 			grabFocus();
 			model.setPressed(true);
@@ -168,10 +178,7 @@ public class MultiStateCheckBox extends JCheckBox implements MouseListener
 	 */
 	protected void rebuildKeyboardMap()
 	{
-		ActionMap map;
-
-		map = new ActionMapUIResource();
-
+		var map = new ActionMapUIResource();
 		map.put("pressed", new AbstractAction()
 		{
 			@Override
